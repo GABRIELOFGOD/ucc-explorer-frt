@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { FaArrowLeft, FaCheckCircle, FaClock, FaCoins, FaExchangeAlt, FaExclamationCircle, FaFileContract, FaSearch, FaSyncAlt, FaUser, FaWallet } from 'react-icons/fa';
-import { getAddressInfo, getLatestTransactionsForAddress, getTokenTransactions, getTokenHolders, timeAgo } from '../../utils/api';
+import { getAddressInfo, getLatestTransactionsForAddress, getTokenTransactions, getTokenHolders, timeAgo, search } from '../../utils/api';
 
 export default function Address() {
   const router = useRouter();
@@ -13,7 +13,31 @@ export default function Address() {
   const [tokenHolders, setTokenHolders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('transactions');
-  const [contracts, setContracts] = useState([]);
+    const [loadingSearch, setLoadingSearch] = useState(false);
+    
+  const sendSearchQuery = async (query) => {
+    setLoadingSearch(true);
+    try {
+      const response = await search(query);
+      const data = response.data;
+      if (data.type === "address") {
+        router.push(`/address/${data.data.address}`);
+      }
+      if (data.type === "transaction") {
+        router.push(`/tx/${data.data.hash}`);
+      }
+      if (data.type === "block") {
+        router.push(`/block/${data.data.number}`);
+      }
+      if (data.type === "not_found") {
+        toast.error("No results found for your search query.");
+      }
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoadingSearch(false);
+    }
+  }
 
   useEffect(() => {
     if (id) {
@@ -59,12 +83,14 @@ export default function Address() {
               <input 
                 type="text" 
                 className="search-input" 
-                placeholder="Search by Address / Txn Hash / Block"
+                placeholder={loadingSearch ? "Searching..." : "Search by Address / Txn Hash / Block"}
                 onKeyDown={e => {
                   if (e.key === 'Enter') {
-                    window.location.href = `/search?q=${encodeURIComponent(e.target.value)}`;
+                    sendSearchQuery(e.target.value);
+                    // window.location.href = `/search?q=${encodeURIComponent(e.target.value)}`;
                   }
                 }}
+                disabled={loadingSearch}
               />
             </div>
           </div>
@@ -104,12 +130,14 @@ export default function Address() {
             <input 
               type="text" 
               className="search-input" 
-              placeholder="Search by Address / Txn Hash / Block" 
+              placeholder={loadingSearch ? "Searching..." : "Search by Address / Txn Hash / Block"}
               onKeyDown={e => {
                 if (e.key === 'Enter') {
-                  window.location.href = `/search?q=${encodeURIComponent(e.target.value)}`;
+                  sendSearchQuery(e.target.value);
+                  // window.location.href = `/search?q=${encodeURIComponent(e.target.value)}`;
                 }
               }}
+              disabled={loadingSearch}
             />
           </div>
         </div>
@@ -125,8 +153,13 @@ export default function Address() {
         </Link>
         <div>
           <h1 className="page-title">Address Details</h1>
+          {address.isContract && tokenHolders.length > 0 && (
+            <div className="hash-display">
+              Symbol: {tokenHolders[0].symbol}
+            </div>
+          )}
           <div className="hash-display">
-            {address?.address}
+            Address: {address?.address}
           </div>
         </div>
       </div>
@@ -177,123 +210,46 @@ export default function Address() {
           </div>
           
           {address?.isContract && (
-            <div className="detail-item">
-              <div className="detail-icon">
-                {address?.isVerified ? <FaCheckCircle /> : <FaExclamationCircle />}
-              </div>
-              <div className="detail-content">
-                <div className="detail-label">Verification</div>
-                <div className="detail-value">
-                  {address?.isVerified ? 'Verified' : 'Not Verified'}
+            <div>
+              <div className="detail-item">
+                <div className="detail-icon">
+                  {address?.isVerified ? <FaCheckCircle /> : <FaExclamationCircle />}
                 </div>
-                {!address?.isVerified && (
+                <div className="detail-content">
+                  <div className="detail-label">Verification</div>
                   <div className="detail-value">
-                    <Link href="/verify-contract" className="verify-button">
-                      Verify Contract
-                    </Link>
+                    {address?.isVerified ? 'Verified' : 'Not Verified'}
                   </div>
-                )}
-                
-                {activeTab === 'token-transactions' && (
-                  <div className="table-container">
-                    <div className="table-header">
-                      <div className="table-title">Token Transactions</div>
+                  {!address?.isVerified && (
+                    <div className="detail-value">
+                      <Link href="/verify-contract" className="verify-button">
+                        Verify Contract
+                      </Link>
                     </div>
-                    
-                    <div className="table-responsive">
-                      <table className="transactions-table">
-                        <thead>
-                          <tr>
-                            <th>Txn Hash</th>
-                            <th>Block</th>
-                            <th>Age</th>
-                            <th>From</th>
-                            <th>To</th>
-                            <th>Value</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {tokenTransactions.map((tx, index) => (
-                            <tr key={index}>
-                              <td>
-                                <div className="hash-row">
-                                  <Link href={`/tx/${tx.transactionHash}`} className="hash-text">
-                                    {tx.transactionHash.substring(0, 6)}...{tx.transactionHash.substring(tx.transactionHash.length - 4)}
-                                  </Link>
-                                </div>
-                              </td>
-                              <td>
-                                <Link href={`/block/${tx.blockNumber}`} className="hash-text">
-                                  #{tx.blockNumber?.toLocaleString()}
-                                </Link>
-                              </td>
-                              <td>
-                                {/* We don't have timestamp data for token transactions in this implementation */}
-                                N/A
-                              </td>
-                              <td>
-                                <div className="hash-row">
-                                  <Link href={`/address/${tx.from}`} className="hash-text">
-                                    {tx.from.substring(0, 6)}...{tx.from.substring(tx.from.length - 4)}
-                                  </Link>
-                                </div>
-                              </td>
-                              <td>
-                                <div className="hash-row">
-                                  <Link href={`/address/${tx.to}`} className="hash-text">
-                                    {tx.to.substring(0, 6)}...{tx.to.substring(tx.to.length - 4)}
-                                  </Link>
-                                </div>
-                              </td>
-                              <td>
-                                <div className="amount-value">
-                                  {tx.value} {tx.symbol}
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="detail-item">
+                <div className="detail-icon">
+                  <FaUser />
+                </div>
+                <div className="detail-content">
+                  <div className="detail-label">Token Holder</div>
+                  <div className="detail-value">
+                    {tokenHolders.length > 0 ? (
+                      <div>
+                        {tokenHolders.length} Holders
+                      </div>
+                      // tokenHolders.map((holder, index) => (
+                      //   <div key={index} className="token-holder">
+                      //     {holder.name} ({holder.symbol})
+                      //   </div>
+                      // ))
+                    ) : (
+                      <div className="no-token-holders">No Token Holders</div>
+                    )}
                   </div>
-                )}
-                
-                {activeTab === 'token-holders' && (
-                  <div className="table-container">
-                    <div className="table-header">
-                      <div className="table-title">Token Holders</div>
-                    </div>
-                    
-                    <div className="table-responsive">
-                      <table className="transactions-table">
-                        <thead>
-                          <tr>
-                            <th>Address</th>
-                            <th>Balance</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {tokenHolders.map((holder, index) => (
-                            <tr key={index}>
-                              <td>
-                                <div className="hash-row">
-                                  <Link href={`/address/${holder.address}`} className="hash-text">
-                                    {holder.address.substring(0, 6)}...{holder.address.substring(holder.address.length - 4)}
-                                  </Link>
-                                </div>
-                              </td>
-                              <td>
-                                <div className="amount-value">
-                                  {holder.balance} {holder.symbol}
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             </div>
           )}
@@ -508,6 +464,106 @@ export default function Address() {
                   
                   <button className="submit-button">Write</button>
                 </div>
+              </div>
+            )}
+                
+            {activeTab === 'token-transactions' && (
+              <div className="table-container">
+                <div className="table-header">
+                  <div className="table-title">Token Transactions</div>
+                </div>
+                
+                <div className="table-responsive">
+                  <table className="transactions-table">
+                    <thead>
+                      <tr>
+                        <th>Txn Hash</th>
+                        <th>Block</th>
+                        <th>From</th>
+                        <th>To</th>
+                        <th>Value</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tokenTransactions.map((tx, index) => (
+                        <tr key={index}>
+                          <td>
+                            <div className="hash-row">
+                              <Link href={`/tx/${tx.transactionHash}`} className="hash-text">
+                                {tx.transactionHash.substring(0, 6)}...{tx.transactionHash.substring(tx.transactionHash.length - 4)}
+                              </Link>
+                            </div>
+                          </td>
+                          <td>
+                            <Link href={`/block/${tx.blockNumber}`} className="hash-text">
+                              #{tx.blockNumber?.toLocaleString()}
+                            </Link>
+                          </td>
+                          <td>
+                            <div className="hash-row">
+                              <Link href={`/address/${tx.from}`} className="hash-text">
+                                {tx.from.substring(0, 6)}...{tx.from.substring(tx.from.length - 4)}
+                              </Link>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="hash-row">
+                              <Link href={`/address/${tx.to}`} className="hash-text">
+                                {tx.to.substring(0, 6)}...{tx.to.substring(tx.to.length - 4)}
+                              </Link>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="amount-value">
+                              {tx.value} {tx.symbol}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+            
+            {activeTab === 'token-holders' && (
+              <div className="table-container">
+                <div className="table-header">
+                  <div className="table-title">Token Holders</div>
+                </div>
+
+                {tokenHolders.length > 0 ? (
+                  <div className="table-responsive">
+                    <table className="transactions-table">
+                      <thead>
+                        <tr>
+                          <th>Address</th>
+                          <th>Balance</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tokenHolders.map((holder, index) => (
+                        <tr key={index}>
+                          <td>
+                            <div className="hash-row">
+                              <Link href={`/address/${holder.address}`} className="hash-text">
+                                {holder.address.substring(0, 6)}...{holder.address.substring(holder.address.length - 4)}
+                              </Link>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="amount-value">
+                              {holder.balance} {holder.symbol}
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  </div>
+                ) : (
+                  <div>No token holders found.</div>
+                )}
               </div>
             )}
           </div>
