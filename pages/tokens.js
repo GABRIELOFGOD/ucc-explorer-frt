@@ -15,7 +15,8 @@ export default function Tokens() {
     const fetchTokens = async () => {
       try {
         const response = await getTokens();
-        setTokens(response.data);
+        console.log(response.data);
+        setTokens(response.data.tokens);
       } catch (error) {
         console.error("Error fetching tokens:", error);
       } finally {

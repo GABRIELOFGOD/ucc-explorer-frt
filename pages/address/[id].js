@@ -364,11 +364,15 @@ export default function Address() {
                             </div>
                           </td>
                           <td>
-                            <div className="hash-row">
+                            {tex.to ? (<div className="hash-row">
                               <Link href={`/address/${tx.to}`} className="hash-text">
                                 {tx.to === address.address ? "You" : `${tx.to.substring(0, 6)}...${tx.to.substring(tx.to.length - 4)}`}
                               </Link>
-                            </div>
+                            </div>) : (
+                              <div className="hash-row">
+                                ...
+                              </div>
+                            )}
                           </td>
                           <td>
                             <div className={`amount-value ${tx.to === address.address ? 'amount-in' : 'amount-out'}`}>

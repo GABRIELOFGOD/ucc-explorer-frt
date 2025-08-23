@@ -4,6 +4,7 @@ import {
   getBlockByNumber,
   getLatestTransactions,
   timeAgo,
+  search
 } from "../../utils/api";
 import Link from "next/link";
 import {
