@@ -364,7 +364,7 @@ export default function Address() {
                             </div>
                           </td>
                           <td>
-                            {tex.to ? (<div className="hash-row">
+                            {tx.to ? (<div className="hash-row">
                               <Link href={`/address/${tx.to}`} className="hash-text">
                                 {tx.to === address.address ? "You" : `${tx.to.substring(0, 6)}...${tx.to.substring(tx.to.length - 4)}`}
                               </Link>
