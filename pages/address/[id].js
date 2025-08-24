@@ -222,31 +222,37 @@ export default function Address() {
 
           {/* Display token balances for all addresses */}
           {!address.isContract &&
-            address?.tokenBalances &&
-            address.tokenBalances.length > 0 && (
-              <div className="detail-item">
-                <div className="detail-icon come-center">
-                  <FaCoins />
-                </div>
-                <div className="detail-content">
-                  <div className="detail-label">Token Holdings</div>
-                  {/* <div className="detail-value">
-                    {address.tokenBalances.map((token, index) => (
-                      <div key={index} className="token-balance">
-                        {token.symbol}: {token.balance}
-                      </div>
-                    ))}
-                  </div> */}
-                  <select className="select-options">
-                    {address?.tokenBalances.map((token, index) => (
+          address?.tokenBalances &&
+          address.tokenBalances.filter((token) => token.balance > 0).length >
+            0 ? (
+            <div className="detail-item">
+              <div className="detail-icon come-center">
+                <FaCoins />
+              </div>
+              <div className="detail-content">
+                <div className="detail-label">Token Holdings</div>
+                <select className="select-options">
+                  {address.tokenBalances
+                    .filter((token) => token.balance > 0)
+                    .map((token, index) => (
                       <option key={index} value={token.symbol}>
                         {token.symbol}: {token.balance}
                       </option>
                     ))}
-                  </select>
-                </div>
+                </select>
               </div>
-            )}
+            </div>
+          ) : (
+            <div className="detail-item">
+              <div className="detail-icon come-center">
+                <FaCoins />
+              </div>
+              <div className="detail-content">
+                <div className="detail-label">Token Holdings</div>
+                <div className="detail-value">Not holding any coin</div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

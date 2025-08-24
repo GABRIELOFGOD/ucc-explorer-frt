@@ -1,23 +1,19 @@
 import { useState, useEffect } from "react";
-import { getTokens, search } from "../utils/api";
+import { getTokens } from "../utils/api";
 import Link from "next/link";
-import { FaSearch, FaSyncAlt } from "react-icons/fa";
-import { useRouter } from "next/router";
+import { FaSyncAlt } from "react-icons/fa";
 import SearchInput from "../components/search-input";
 
 export default function Tokens() {
   const [tokens, setTokens] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadingSearch, setLoadingSearch] = useState(false);
 
-  const router = useRouter();
 
   useEffect(() => {
     const fetchTokens = async () => {
       try {
         const response = await getTokens();
-        console.log(response.data);
-        setTokens(response.data.tokens);
+        // setTokens(response.data.tokens.filter(token => token.symbol));
       } catch (error) {
         console.error("Error fetching tokens:", error);
       } finally {
@@ -27,31 +23,6 @@ export default function Tokens() {
 
     fetchTokens();
   }, []);
-
-  const sendSearchQuery = async (query) => {
-    setLoadingSearch(true);
-    try {
-      const response = await search(query);
-      const data = response.data;
-
-      if (data.type === "address") {
-        router.push(`/address/${data.data.address}`);
-      }
-      if (data.type === "transaction") {
-        router.push(`/tx/${data.data.hash}`);
-      }
-      if (data.type === "block") {
-        router.push(`/block/${data.data.number}`);
-      }
-      if (data.type === "not_found") {
-        toast.error("No results found for your search query.");
-      }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoadingSearch(false);
-    }
-  };
 
   return (
     <div className="main-content">

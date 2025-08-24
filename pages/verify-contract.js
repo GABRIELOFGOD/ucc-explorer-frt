@@ -1,13 +1,11 @@
 import { useState } from "react";
-import { search, verifyContract } from "../utils/api";
+import { verifyContract } from "../utils/api";
 import Link from "next/link";
 import {
   FaArrowLeft,
   FaCheckCircle,
   FaExclamationCircle,
-  FaSearch,
 } from "react-icons/fa";
-import { useRouter } from "next/router";
 import SearchInput from "../components/search-input";
 
 export default function VerifyContract() {
@@ -20,34 +18,6 @@ export default function VerifyContract() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
-  const [loadingSearch, setLoadingSearch] = useState(false);
-
-  const router = useRouter();
-
-  const sendSearchQuery = async (query) => {
-    setLoadingSearch(true);
-    try {
-      const response = await search(query);
-      const data = response.data;
-
-      if (data.type === "address") {
-        router.push(`/address/${data.data.address}`);
-      }
-      if (data.type === "transaction") {
-        router.push(`/tx/${data.data.hash}`);
-      }
-      if (data.type === "block") {
-        router.push(`/block/${data.data.number}`);
-      }
-      if (data.type === "not_found") {
-        toast.error("No results found for your search query.");
-      }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoadingSearch(false);
-    }
-  };
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -65,6 +35,7 @@ export default function VerifyContract() {
 
     try {
       const response = await verifyContract(formData);
+      console.log("Response for verifiedContract", response.data);
       setResult(response.data);
     } catch (err) {
       setError(err.response?.data?.error || "Failed to verify contract");
