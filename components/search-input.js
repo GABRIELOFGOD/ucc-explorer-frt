@@ -1,7 +1,7 @@
 import { useRouter } from "next/router";
 import { search } from "../utils/api";
 import { useState } from "react";
-import { FaSearch } from "react-icons/fa";
+import { FaSearch, FaSyncAlt } from "react-icons/fa";
 import { toast } from "sonner";
 
 const SearchInput = () => {
@@ -55,8 +55,8 @@ const SearchInput = () => {
           disabled={loadingSearch}
         />
       </div>
-      <button className="search-button" onClick={() => sendSearchQuery(document.querySelector('.search-input').value)}>
-        <FaSearch size={15} className='search-button-icon' />
+      <button disabled={loadingSearch} className="search-button" onClick={() => sendSearchQuery(document.querySelector('.search-input').value)}>
+        {loadingSearch ? <FaSyncAlt className="load-icon-spin" /> : <FaSearch size={15} className='search-button-icon' />}
       </button>
     </div>
   )

@@ -65,7 +65,7 @@ export default function Transaction() {
 
         <div className="detail-item">
           <div className="detail-icon">
-            <FaSyncAlt />
+            <FaSyncAlt className="load-icon-spin" />
           </div>
           <div className="detail-content">
             <div className="detail-label">Loading transaction data...</div>

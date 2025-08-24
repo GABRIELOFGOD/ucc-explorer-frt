@@ -1,11 +1,7 @@
 import { useState, useEffect } from "react";
 import { getLatestBlocks, timeAgo } from "../utils/api";
 import Link from "next/link";
-import {
-  FaChevronLeft,
-  FaChevronRight,
-  FaSyncAlt,
-} from "react-icons/fa";
+import { FaChevronLeft, FaChevronRight, FaSyncAlt } from "react-icons/fa";
 import { useRouter } from "next/router";
 import SearchInput from "../components/search-input";
 
@@ -20,7 +16,9 @@ export default function Blocks() {
       try {
         const response = await getLatestBlocks(currentPage, 10);
         setBlocks(response.data.blocks);
-        setTotalPages(response.data.totalPages >= 10 ? 10 : response.data.totalPages);
+        setTotalPages(
+          response.data.totalPages >= 10 ? 10 : response.data.totalPages
+        );
       } catch (error) {
         console.error("Error fetching blocks:", error);
       } finally {
@@ -87,7 +85,7 @@ export default function Blocks() {
         {loading ? (
           <div className="detail-item">
             <div className="detail-icon">
-              <FaSyncAlt />
+              <FaSyncAlt className="load-icon-spin" />
             </div>
             <div className="detail-content">
               <div className="detail-label">Loading blocks...</div>

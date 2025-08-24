@@ -55,7 +55,7 @@ export default function ApiDocs() {
 
         <div className="detail-item">
           <div className="detail-icon">
-            <FaSyncAlt />
+            <FaSyncAlt className="load-icon-spin" />
           </div>
           <div className="detail-content">
             <div className="detail-label">Loading API documentation...</div>
@@ -121,13 +121,17 @@ export default function ApiDocs() {
                 <p>{docs?.authentication}</p>
                 <ul>
                   <li>Free Tier: {docs?.rate_limiting?.free_tier}</li>
-                  <li>Authenticated Tier: {docs?.rate_limiting?.authenticated_tier}</li>
+                  <li>
+                    Authenticated Tier:{" "}
+                    {docs?.rate_limiting?.authenticated_tier}
+                  </li>
                   <li>Basic Tier: {docs?.rate_limiting?.basic_tier}</li>
                   <li>Premium Tier: {docs?.rate_limiting?.premium_tier}</li>
                 </ul>
                 <p>
                   Register for an account to get higher rate limits.
-                  Authenticated users get 1000 requests per minute automatically.
+                  Authenticated users get 1000 requests per minute
+                  automatically.
                 </p>
               </div>
             </div>

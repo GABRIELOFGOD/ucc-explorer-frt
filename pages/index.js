@@ -150,7 +150,7 @@ export default function Home() {
         {loading ? (
           <div className="detail-item">
             <div className="detail-icon">
-              <FaSyncAlt />
+              <FaSyncAlt className="load-icon-spin" />
             </div>
             <div className="detail-content">
               <div className="detail-label">Loading transactions...</div>
@@ -194,9 +194,7 @@ export default function Home() {
                       )}{" "}
                       seconds ago
                     </td> */}
-                    <td>
-                      {timeAgo(tx.timestamp)}
-                    </td>
+                    <td>{timeAgo(tx.timestamp)}</td>
                     <td>
                       <div className="hash-row">
                         <Link
@@ -238,7 +236,7 @@ export default function Home() {
         {loading ? (
           <div className="detail-item">
             <div className="detail-icon">
-              <FaSyncAlt />
+              <FaSyncAlt className="load-icon-spin" />
             </div>
             <div className="detail-content">
               <div className="detail-label">Loading blocks...</div>
@@ -282,7 +280,6 @@ export default function Home() {
           </div>
         )}
       </div>
-      
     </div>
   );
 }

@@ -15,13 +15,14 @@ export default function Addresses() {
         const response = await getLatestTransactions();
         const gotIt = response.data.transactions;
         const walletSet = new Set();
-        gotIt.length && gotIt.forEach(tx => {
-          if (tx.from) walletSet.add(tx.from);
-          if (tx.to) walletSet.add(tx.to);
-        });
-        const uniqueAddresses = Array.from(walletSet).map(addr => ({
+        gotIt.length &&
+          gotIt.forEach((tx) => {
+            if (tx.from) walletSet.add(tx.from);
+            if (tx.to) walletSet.add(tx.to);
+          });
+        const uniqueAddresses = Array.from(walletSet).map((addr) => ({
           address: addr,
-          name: addr
+          name: addr,
         }));
         setAddresses(uniqueAddresses);
       } catch (error) {
@@ -56,7 +57,7 @@ export default function Addresses() {
         {loading ? (
           <div className="detail-item">
             <div className="detail-icon">
-              <FaSyncAlt />
+              <FaSyncAlt className="load-icon-spin" />
             </div>
             <div className="detail-content">
               <div className="detail-label">Loading addresses...</div>

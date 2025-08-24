@@ -4,7 +4,7 @@ import {
   getBlockByNumber,
   getLatestTransactions,
   timeAgo,
-  search
+  search,
 } from "../../utils/api";
 import Link from "next/link";
 import {
@@ -78,7 +78,7 @@ export default function Block() {
 
         <div className="detail-item">
           <div className="detail-icon">
-            <FaSyncAlt />
+            <FaSyncAlt className="load-icon-spin" />
           </div>
           <div className="detail-content">
             <div className="detail-label">Loading block data...</div>
