@@ -254,6 +254,7 @@ body {
 .search-container {
   flex: 1;
   max-width: 512px;
+  position: relative;
 }
 
 .search-bar {
@@ -648,4 +649,19 @@ body {
 
 .status-dot.disconnected {
   background-color: #dc3545;
+}
+
+.search-button {
+  position: absolute;
+  border-radius: 5px;
+  height: 40px;
+  width: 40px;
+  outline: none;
+  background: var(--electric-blue);
+  top: 4px;
+  right: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
 }

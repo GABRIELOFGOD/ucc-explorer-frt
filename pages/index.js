@@ -5,7 +5,6 @@ import {
   getLatestTransactions,
   initWebSocket,
   closeWebSocket,
-  search,
   timeAgo,
 } from "../utils/api";
 import Link from "next/link";
@@ -14,20 +13,15 @@ import {
   FaCube,
   FaGasPump,
   FaHashtag,
-  FaSearch,
   FaSyncAlt,
 } from "react-icons/fa";
-import { useRouter } from "next/router";
-import { toast } from "sonner";
+import SearchInput from "../components/search-input";
 
 export default function Home() {
   const [networkInfo, setNetworkInfo] = useState(null);
   const [latestBlocks, setLatestBlocks] = useState([]);
   const [latestTransactions, setLatestTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [loadingSearch, setLoadingSearch] = useState(false);
-
-  const router = useRouter();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -75,55 +69,10 @@ export default function Home() {
     };
   }, []);
 
-  const sendSearchQuery = async (query) => {
-    setLoadingSearch(true);
-    try {
-      const response = await search(query);
-      const data = response.data;
-
-      if (data.type === "address") {
-        router.push(`/address/${data.data.address}`);
-      }
-      if (data.type === "transaction") {
-        router.push(`/tx/${data.data.hash}`);
-      }
-      if (data.type === "block") {
-        router.push(`/block/${data.data.number}`);
-      }
-      if (data.type === "not_found") {
-        toast.error("No results found for your search query.");
-      }
-    } catch (error) {
-      console.log(error);
-    } finally {
-      setLoadingSearch(false);
-    }
-  };
-
   return (
     <div className="main-content">
       <div className="top-nav">
-        <div className="search-container">
-          <div className="search-bar">
-            <FaSearch className="search-icon" />
-            <input
-              type="text"
-              className="search-input"
-              placeholder={
-                loadingSearch
-                  ? "Searching..."
-                  : "Search by Address / Txn Hash / Block"
-              }
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  sendSearchQuery(e.target.value);
-                  // window.location.href = `/search?q=${encodeURIComponent(e.target.value)}`;
-                }
-              }}
-              disabled={loadingSearch}
-            />
-          </div>
-        </div>
+        <SearchInput />
         <div className="network-indicator">
           <div className="status-dot"></div>
           <div className="network-name">Testnet</div>

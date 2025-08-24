@@ -3,6 +3,7 @@ import { getTokens, search } from "../utils/api";
 import Link from "next/link";
 import { FaSearch, FaSyncAlt } from "react-icons/fa";
 import { useRouter } from "next/router";
+import SearchInput from "../components/search-input";
 
 export default function Tokens() {
   const [tokens, setTokens] = useState([]);
@@ -55,27 +56,7 @@ export default function Tokens() {
   return (
     <div className="main-content">
       <div className="top-nav">
-        <div className="search-container">
-          <div className="search-bar">
-            <FaSearch className="search-icon" />
-            <input
-              type="text"
-              className="search-input"
-              placeholder={
-                loadingSearch
-                  ? "Searching..."
-                  : "Search by Address / Txn Hash / Block"
-              }
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  sendSearchQuery(e.target.value);
-                  // window.location.href = `/search?q=${encodeURIComponent(e.target.value)}`;
-                }
-              }}
-              disabled={loadingSearch}
-            />
-          </div>
-        </div>
+        <SearchInput />
         <div className="network-indicator">
           <div className="status-dot"></div>
           <div className="network-name">Testnet</div>

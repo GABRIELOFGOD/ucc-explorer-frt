@@ -3,6 +3,7 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import { FaArrowLeft, FaExclamationCircle  } from "react-icons/fa";
 import { register } from "../utils/api";
+import SearchInput from "../components/search-input";
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -44,15 +45,7 @@ export default function Register() {
   return (
     <div className="main-content">
       <div className="top-nav">
-        <div className="search-container">
-          <div className="search-bar">
-            <input
-              type="text"
-              className="search-input"
-              placeholder="Search by Address / Txn Hash / Block"
-            />
-          </div>
-        </div>
+        <SearchInput />
         <div className="network-indicator">
           <div className="status-dot"></div>
           <div className="network-name">Testnet</div>
