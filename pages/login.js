@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { FaArrowLeft, FaSignInAlt, FaUserPlus } from "react-icons/fa";
+import { FaArrowLeft, FaSignInAlt, FaUserPlus, FaExclamationCircle } from "react-icons/fa";
 import { login } from "../utils/api";
 import SearchInput from "../components/search-input";
 

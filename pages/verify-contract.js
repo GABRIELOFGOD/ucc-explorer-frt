@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { verifyContract } from "../utils/api";
 import Link from "next/link";
 import {
@@ -7,17 +7,20 @@ import {
   FaExclamationCircle,
 } from "react-icons/fa";
 import SearchInput from "../components/search-input";
+import { toast } from "sonner";
 
 export default function VerifyContract() {
   const [formData, setFormData] = useState({
     address: "",
     sourceCode: "",
-    compilerVersion: "0.8.0",
+    compilerVersion: "",
     optimization: false,
   });
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+  const [fetchingVersion, setFetchingVersion] = useState(true);
+  const [solVersions, setSolVersions] = useState([]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -26,6 +29,37 @@ export default function VerifyContract() {
       [name]: type === "checkbox" ? checked : value,
     }));
   };
+
+  async function getSolcReleases() {
+    try {
+      const req = await fetch("https://binaries.soliditylang.org/bin/list.json");
+      const data = await req.json();
+
+      if (!data.releases) throw new Error("Invalid releases format");
+
+      // Convert { "0.8.20": "soljson-v0.8.20+commit.a1b79de6.js", ... }
+      // → [ { version: "0.8.20", build: "v0.8.20+commit.a1b79de6" }, ... ]
+      const versions = Object.entries(data.releases).map(([short, file]) => {
+        const build = file
+          .replace("soljson-", "")   // remove prefix
+          .replace(".js", "");       // remove suffix
+        return { version: short, build };
+      });
+
+      console.log("Available Solidity versions:", [...versions.map(v => v.build)]);
+
+      setSolVersions(versions); // Save structured versions list
+    } catch (error) {
+      console.error("Error fetching solc releases:", error);
+      toast.error("Failed fetching sol version");
+    } finally {
+      setFetchingVersion(false);
+    }
+  }
+
+  useEffect(() => {
+    getSolcReleases();
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -91,7 +125,12 @@ export default function VerifyContract() {
               onChange={handleChange}
               required
             >
-              <option value="0.8.24">0.8.24</option>
+              {solVersions.map((itm, i) => (
+                <option key={i} value={itm.build}>
+                  {itm.version}
+                </option>
+              ))}
+              {/* <option value="0.8.24">0.8.24</option>
               <option value="0.8.23">0.8.23</option>
               <option value="0.8.22">0.8.22</option>
               <option value="0.8.21">0.8.21</option>
@@ -153,7 +192,7 @@ export default function VerifyContract() {
               <option value="0.5.3">0.5.3</option>
               <option value="0.5.2">0.5.2</option>
               <option value="0.5.1">0.5.1</option>
-              <option value="0.5.0">0.5.0</option>
+              <option value="0.5.0">0.5.0</option> */}
             </select>
           </div>
 
