@@ -13,6 +13,7 @@ export default function VerifyContract() {
   const [formData, setFormData] = useState({
     address: "",
     sourceCode: "",
+    license: "",
     compilerVersion: "",
     optimization: false,
   });
@@ -30,9 +31,23 @@ export default function VerifyContract() {
     }));
   };
 
+  const contractLicenses = [
+    "MIT",
+    "GPL-3.0",
+    "Apache-2.0",
+    "Unlicense",
+    "Custom"
+  ];
+
+  if (error) {
+    console.log("ERROR HERE", error);
+  }
+
   async function getSolcReleases() {
     try {
-      const req = await fetch("https://binaries.soliditylang.org/bin/list.json");
+      const req = await fetch(
+        "https://binaries.soliditylang.org/bin/list.json"
+      );
       const data = await req.json();
 
       if (!data.releases) throw new Error("Invalid releases format");
@@ -41,12 +56,10 @@ export default function VerifyContract() {
       // → [ { version: "0.8.20", build: "v0.8.20+commit.a1b79de6" }, ... ]
       const versions = Object.entries(data.releases).map(([short, file]) => {
         const build = file
-          .replace("soljson-", "")   // remove prefix
-          .replace(".js", "");       // remove suffix
+          .replace("soljson-", "") // remove prefix
+          .replace(".js", ""); // remove suffix
         return { version: short, build };
       });
-
-      console.log("Available Solidity versions:", [...versions.map(v => v.build)]);
 
       setSolVersions(versions); // Save structured versions list
     } catch (error) {
@@ -114,6 +127,17 @@ export default function VerifyContract() {
               placeholder="0x..."
               required
             />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="license">Contract License</label>
+            <select>
+              {contractLicenses.map((license, index) => (
+                <option key={index} value={license}>
+                  {license}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="form-group">

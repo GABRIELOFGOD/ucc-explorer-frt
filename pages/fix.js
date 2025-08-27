@@ -20,4 +20,4 @@ const Fix = () => {
     </div>
   )
 }
-export default Fix
+export default Fix;
