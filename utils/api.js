@@ -3,8 +3,8 @@ import io from 'socket.io-client';
 
 // Create axios instance
 const api = axios.create({
-  baseURL: 'http://localhost:3001/api',
-  // baseURL: 'https://ucc.ccpay.space/api',
+  // baseURL: 'http://localhost:3001/api',
+  baseURL: 'https://ucc.ccpay.space/api',
 });
 
 // Add a request interceptor to include the JWT token
@@ -110,8 +110,8 @@ let socket;
 
 export const initWebSocket = (onData) => {
   if (!socket) {
-    socket = io('http://localhost:3001');
-    // socket = io('https://ucc.ccpay.space');
+    // socket = io('http://localhost:3001');
+    socket = io('https://ucc.ccpay.space');
     
     socket.on('latestData', (data) => {
       onData(data);
