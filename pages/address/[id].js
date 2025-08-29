@@ -19,10 +19,16 @@ import {
   getLatestTransactionsForAddress,
   getTokenTransactions,
   getTokenHolders,
+  getContractDetails,
+  getContractABI,
   timeAgo,
   search,
 } from "../../utils/api";
 import SearchInput from "../../components/search-input";
+
+// Web3 integration - you'll need to install ethers.js
+// npm install ethers
+import { ethers } from "ethers";
 
 export default function Address() {
   const router = useRouter();
@@ -31,8 +37,90 @@ export default function Address() {
   const [transactions, setTransactions] = useState([]);
   const [tokenTransactions, setTokenTransactions] = useState([]);
   const [tokenHolders, setTokenHolders] = useState([]);
+  const [contractDetails, setContractDetails] = useState(null);
+  const [contractABI, setContractABI] = useState(null);
+  const [readFunctions, setReadFunctions] = useState([]);
+  const [writeFunctions, setWriteFunctions] = useState([]);
+  const [selectedReadFunction, setSelectedReadFunction] = useState(null);
+  const [selectedWriteFunction, setSelectedWriteFunction] = useState(null);
+  const [readParams, setReadParams] = useState({});
+  const [writeParams, setWriteParams] = useState({});
+  const [readResult, setReadResult] = useState(null);
+  const [readLoading, setReadLoading] = useState(false);
+  const [writeLoading, setWriteLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("transactions");
+  const [provider, setProvider] = useState(null);
+  const [signer, setSigner] = useState(null);
+  const [contract, setContract] = useState(null);
+  const [walletConnected, setWalletConnected] = useState(false);
+
+  // Initialize Web3 provider
+  useEffect(() => {
+    const initializeWeb3 = async () => {
+      if (typeof window !== "undefined" && window.ethereum) {
+        try {
+          const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+          setProvider(web3Provider);
+          
+          // Check if already connected
+          const accounts = await web3Provider.listAccounts();
+          if (accounts.length > 0) {
+            setWalletConnected(true);
+            setSigner(web3Provider.getSigner());
+          }
+        } catch (error) {
+          console.error("Error initializing Web3:", error);
+        }
+      } else {
+        // Fallback to a read-only provider (like Infura or Alchemy)
+        try {
+          const readOnlyProvider = new ethers.providers.JsonRpcProvider(
+            process.env.NEXT_PUBLIC_RPC_URL || "http://localhost:8545"
+          );
+          setProvider(readOnlyProvider);
+        } catch (error) {
+          console.error("Error setting up read-only provider:", error);
+        }
+      }
+    };
+
+    initializeWeb3();
+  }, []);
+
+  // Create contract instance when ABI and address are available
+  useEffect(() => {
+    if (contractABI && address?.address && provider) {
+      try {
+        const contractInstance = new ethers.Contract(
+          address.address,
+          contractABI.abi || contractABI,
+          signer || provider
+        );
+        setContract(contractInstance);
+      } catch (error) {
+        console.error("Error creating contract instance:", error);
+      }
+    }
+  }, [contractABI, address, provider, signer]);
+
+  // Connect wallet function
+  const connectWallet = async () => {
+    if (typeof window !== "undefined" && window.ethereum) {
+      try {
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+        const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+        setProvider(web3Provider);
+        setSigner(web3Provider.getSigner());
+        setWalletConnected(true);
+      } catch (error) {
+        console.error("Error connecting wallet:", error);
+        alert("Failed to connect wallet. Please try again.");
+      }
+    } else {
+      alert("Please install MetaMask or another Web3 wallet to interact with contracts.");
+    }
+  };
 
   useEffect(() => {
     if (id) {
@@ -52,11 +140,44 @@ export default function Address() {
             } catch (error) {
               console.error("Error fetching token data:", error);
             }
+
+            // Fetch contract details if it's a contract
+            try {
+              const contractResponse = await getContractDetails(id);
+              setContractDetails(contractResponse.data.contract);
+
+              // Fetch ABI if contract is verified
+              if (contractResponse.data.contract.isVerified) {
+                const abiResponse = await getContractABI(id);
+                setContractABI(abiResponse.data);
+
+                // Separate read and write functions from ABI
+                if (abiResponse.data.abi || abiResponse.data.functions) {
+                  const abi = abiResponse.data.abi || abiResponse.data.functions;
+                  
+                  // Filter functions from ABI
+                  const functions = abi.filter(item => item.type === 'function');
+                  
+                  const readFns = functions.filter((fn) =>
+                    fn.stateMutability === "view" || fn.stateMutability === "pure"
+                  );
+                  const writeFns = functions.filter((fn) =>
+                    fn.stateMutability === "nonpayable" || fn.stateMutability === "payable"
+                  );
+
+                  setReadFunctions(readFns);
+                  setWriteFunctions(writeFns);
+
+                  if (readFns.length > 0) setSelectedReadFunction(readFns[0]);
+                  if (writeFns.length > 0) setSelectedWriteFunction(writeFns[0]);
+                }
+              }
+            } catch (error) {
+              console.error("Error fetching contract data:", error);
+            }
           }
 
-          const personalTransactions = await getLatestTransactionsForAddress(
-            id
-          );
+          const personalTransactions = await getLatestTransactionsForAddress(id);
           setTransactions(personalTransactions.data.transactions);
         } catch (error) {
           console.error("Error fetching address info:", error);
@@ -68,6 +189,171 @@ export default function Address() {
       fetchAddressInfo();
     }
   }, [id]);
+
+  const handleReadFunctionChange = (e) => {
+    const funcName = e.target.value;
+    const func = readFunctions.find((f) => f.name === funcName);
+    setSelectedReadFunction(func);
+    setReadParams({});
+    setReadResult(null);
+  };
+
+  const handleWriteFunctionChange = (e) => {
+    const funcName = e.target.value;
+    const func = writeFunctions.find((f) => f.name === funcName);
+    setSelectedWriteFunction(func);
+    setWriteParams({});
+  };
+
+  const handleReadParamChange = (paramName, value) => {
+    setReadParams((prev) => ({
+      ...prev,
+      [paramName]: value,
+    }));
+  };
+
+  const handleWriteParamChange = (paramName, value) => {
+    setWriteParams((prev) => ({
+      ...prev,
+      [paramName]: value,
+    }));
+  };
+
+  // Parse parameter value based on type
+  const parseParameterValue = (value, type) => {
+    try {
+      if (type.includes('uint') || type.includes('int')) {
+        return ethers.BigNumber.from(value);
+      }
+      if (type === 'bool') {
+        return value.toLowerCase() === 'true';
+      }
+      if (type.includes('bytes')) {
+        return ethers.utils.hexlify(ethers.utils.toUtf8Bytes(value));
+      }
+      if (type === 'address') {
+        return ethers.utils.getAddress(value);
+      }
+      // For arrays, parse as JSON
+      if (type.includes('[]')) {
+        return JSON.parse(value);
+      }
+      return value;
+    } catch (error) {
+      throw new Error(`Invalid parameter format for ${type}: ${error.message}`);
+    }
+  };
+
+  const handleReadFunctionCall = async () => {
+    if (!selectedReadFunction || !contract) return;
+
+    setReadLoading(true);
+    setReadResult(null);
+
+    try {
+      // Prepare parameters
+      const params = [];
+      if (selectedReadFunction.inputs && selectedReadFunction.inputs.length > 0) {
+        for (const input of selectedReadFunction.inputs) {
+          const paramValue = readParams[input.name];
+          if (paramValue === undefined || paramValue === '') {
+            throw new Error(`Parameter ${input.name} is required`);
+          }
+          const parsedValue = parseParameterValue(paramValue, input.type);
+          params.push(parsedValue);
+        }
+      }
+
+      // Call the contract function
+      const result = await contract[selectedReadFunction.name](...params);
+      
+      // Format the result based on return type
+      let formattedResult;
+      if (ethers.BigNumber.isBigNumber(result)) {
+        formattedResult = result.toString();
+      } else if (Array.isArray(result)) {
+        formattedResult = JSON.stringify(result, null, 2);
+      } else if (typeof result === 'object') {
+        formattedResult = JSON.stringify(result, null, 2);
+      } else {
+        formattedResult = result.toString();
+      }
+
+      setReadResult(formattedResult);
+    } catch (error) {
+      console.error("Error calling read function:", error);
+      setReadResult(`Error: ${error.message}`);
+    } finally {
+      setReadLoading(false);
+    }
+  };
+
+  const handleWriteFunctionCall = async () => {
+    if (!selectedWriteFunction || !contract || !walletConnected) {
+      if (!walletConnected) {
+        alert("Please connect your wallet first to write to the contract.");
+        return;
+      }
+      return;
+    }
+
+    setWriteLoading(true);
+
+    try {
+      // Prepare parameters
+      const params = [];
+      let payableValue = ethers.BigNumber.from(0);
+
+      if (selectedWriteFunction.inputs && selectedWriteFunction.inputs.length > 0) {
+        for (const input of selectedWriteFunction.inputs) {
+          const paramValue = writeParams[input.name];
+          if (paramValue === undefined || paramValue === '') {
+            throw new Error(`Parameter ${input.name} is required`);
+          }
+          const parsedValue = parseParameterValue(paramValue, input.type);
+          params.push(parsedValue);
+        }
+      }
+
+      // Handle payable functions
+      const options = {};
+      if (selectedWriteFunction.stateMutability === 'payable') {
+        const ethValue = writeParams['_value'] || '0';
+        options.value = ethers.utils.parseEther(ethValue);
+      }
+
+      // Estimate gas
+      try {
+        const gasEstimate = await contract.estimateGas[selectedWriteFunction.name](...params, options);
+        options.gasLimit = gasEstimate.mul(120).div(100); // Add 20% buffer
+      } catch (gasError) {
+        console.warn("Gas estimation failed, using default gas limit");
+        options.gasLimit = 300000; // Default gas limit
+      }
+
+      // Call the contract function
+      const tx = await contract[selectedWriteFunction.name](...params, options);
+      
+      alert(`Transaction sent! Hash: ${tx.hash}`);
+      
+      // Wait for transaction confirmation
+      const receipt = await tx.wait();
+      alert(`Transaction confirmed in block ${receipt.blockNumber}`);
+      
+    } catch (error) {
+      console.error("Error calling write function:", error);
+      alert(`Transaction failed: ${error.message}`);
+    } finally {
+      setWriteLoading(false);
+    }
+  };
+
+  // Function signature generator for display
+  const getFunctionSignature = (func) => {
+    const inputs = func.inputs || [];
+    const inputTypes = inputs.map(input => input.type).join(', ');
+    return `${func.name}(${inputTypes})`;
+  };
 
   if (loading) {
     return (
@@ -207,11 +493,6 @@ export default function Address() {
                     {tokenHolders.length > 0 ? (
                       <div>{tokenHolders.length} Holders</div>
                     ) : (
-                      // tokenHolders.map((holder, index) => (
-                      //   <div key={index} className="token-holder">
-                      //     {holder.name} ({holder.symbol})
-                      //   </div>
-                      // ))
                       <div className="no-token-holders">No Token Holders</div>
                     )}
                   </div>
@@ -417,10 +698,10 @@ export default function Address() {
 
                 {address?.isVerified ? (
                   <div className="contract-code">
-                    <pre>
-                      {address?.contractInfo?.sourceCode ||
+                    {/* <pre>
+                      {contractDetails?.sourceCode ||
                         "Source code not available"}
-                    </pre>
+                    </pre> */}
                   </div>
                 ) : (
                   <div className="detail-item">
@@ -448,23 +729,84 @@ export default function Address() {
               <div className="table-container">
                 <div className="table-header">
                   <div className="table-title">Read Contract</div>
+                  <div className="wallet-status">
+                    {provider ? (
+                      <span className="connected">✓ Provider Connected</span>
+                    ) : (
+                      <span className="disconnected">✗ No Provider</span>
+                    )}
+                  </div>
                 </div>
 
                 <div className="read-contract">
                   <div className="form-group">
-                    <label htmlFor="function">Select Function</label>
-                    <select id="function" className="function-select">
-                      <option value="getValue">getValue()</option>
-                      <option value="getName">getName()</option>
+                    <label htmlFor="readFunction">Select Function</label>
+                    <select
+                      id="readFunction"
+                      className="function-select"
+                      onChange={handleReadFunctionChange}
+                      value={selectedReadFunction?.name || ""}
+                    >
+                      <option value="">Select a function</option>
+                      {readFunctions.map((func, index) => (
+                        <option key={index} value={func.name}>
+                          {getFunctionSignature(func)}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
-                  <button className="submit-button">Query</button>
+                  {selectedReadFunction &&
+                    selectedReadFunction.inputs &&
+                    selectedReadFunction.inputs.length > 0 && (
+                      <div className="form-group">
+                        <label>Parameters</label>
+                        {selectedReadFunction.inputs.map((input, index) => (
+                          <div key={index} className="param-input-group">
+                            <label className="param-label">
+                              {input.name} ({input.type})
+                            </label>
+                            <input
+                              type="text"
+                              placeholder={`Enter ${input.type} value`}
+                              className="function-param"
+                              value={readParams[input.name] || ""}
+                              onChange={(e) =>
+                                handleReadParamChange(input.name, e.target.value)
+                              }
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-                  <div className="result-section">
-                    <div className="result-label">Result:</div>
-                    <div className="result-value">12345</div>
-                  </div>
+                  <button
+                    className="submit-button"
+                    onClick={handleReadFunctionCall}
+                    disabled={!selectedReadFunction || readLoading || !contract}
+                  >
+                    {readLoading ? "Querying..." : "Query"}
+                  </button>
+
+                  {readResult && (
+                    <div className="result-section">
+                      <div className="result-label">Result:</div>
+                      <div className="result-value">
+                        <pre>{readResult}</pre>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedReadFunction && (
+                    <div className="function-info">
+                      <h4>Function Details:</h4>
+                      <p><strong>Name:</strong> {selectedReadFunction.name}</p>
+                      <p><strong>Type:</strong> {selectedReadFunction.stateMutability}</p>
+                      {selectedReadFunction.outputs && selectedReadFunction.outputs.length > 0 && (
+                        <p><strong>Returns:</strong> {selectedReadFunction.outputs.map(o => o.type).join(', ')}</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -473,23 +815,92 @@ export default function Address() {
               <div className="table-container">
                 <div className="table-header">
                   <div className="table-title">Write Contract</div>
+                  <div className="wallet-status">
+                    {walletConnected ? (
+                      <span className="connected">✓ Wallet Connected</span>
+                    ) : (
+                      <button className="connect-button" onClick={connectWallet}>
+                        Connect Wallet
+                      </button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="write-contract">
                   <div className="form-group">
                     <label htmlFor="writeFunction">Select Function</label>
-                    <select id="writeFunction" className="function-select">
-                      <option value="setValue">setValue(uint256)</option>
-                      <option value="setName">setName(string)</option>
+                    <select
+                      id="writeFunction"
+                      className="function-select"
+                      onChange={handleWriteFunctionChange}
+                      value={selectedWriteFunction?.name || ""}
+                    >
+                      <option value="">Select a function</option>
+                      {writeFunctions.map((func, index) => (
+                        <option key={index} value={func.name}>
+                          {getFunctionSignature(func)}
+                        </option>
+                      ))}
                     </select>
                   </div>
 
-                  <div className="form-group">
-                    <label htmlFor="param1">Parameter 1</label>
-                    <input type="text" id="param1" placeholder="Enter value" />
-                  </div>
+                  {selectedWriteFunction &&
+                    selectedWriteFunction.inputs &&
+                    selectedWriteFunction.inputs.length > 0 && (
+                      <div className="form-group">
+                        <label>Parameters</label>
+                        {selectedWriteFunction.inputs.map((input, index) => (
+                          <div key={index} className="param-input-group">
+                            <label className="param-label">
+                              {input.name} ({input.type})
+                            </label>
+                            <input
+                              type="text"
+                              placeholder={`Enter ${input.type} value`}
+                              className="function-param"
+                              value={writeParams[input.name] || ""}
+                              onChange={(e) =>
+                                handleWriteParamChange(input.name, e.target.value)
+                              }
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-                  <button className="submit-button">Write</button>
+                  {selectedWriteFunction?.stateMutability === 'payable' && (
+                    <div className="form-group">
+                      <label className="param-label">Value (ETH)</label>
+                      <input
+                        type="text"
+                        placeholder="Enter ETH amount to send"
+                        className="function-param"
+                        value={writeParams['_value'] || ""}
+                        onChange={(e) =>
+                          handleWriteParamChange('_value', e.target.value)
+                        }
+                      />
+                    </div>
+                  )}
+
+                  <button
+                    className="submit-button"
+                    onClick={handleWriteFunctionCall}
+                    disabled={!selectedWriteFunction || writeLoading || !walletConnected || !contract}
+                  >
+                    {writeLoading ? "Processing..." : "Write"}
+                  </button>
+
+                  {selectedWriteFunction && (
+                    <div className="function-info">
+                      <h4>Function Details:</h4>
+                      <p><strong>Name:</strong> {selectedWriteFunction.name}</p>
+                      <p><strong>Type:</strong> {selectedWriteFunction.stateMutability}</p>
+                      {selectedWriteFunction.stateMutability === 'payable' && (
+                        <p className="payable-warning">⚠️ This function can receive ETH</p>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -721,6 +1132,7 @@ export default function Address() {
           display: flex;
           border-bottom: 1px solid var(--gray-600);
           margin-bottom: 20px;
+          flex-wrap: wrap;
         }
 
         .tab {
@@ -731,6 +1143,7 @@ export default function Address() {
           font-weight: 500;
           color: var(--gray-400);
           border-bottom: 2px solid transparent;
+          white-space: nowrap;
         }
 
         .tab.active {
@@ -748,7 +1161,9 @@ export default function Address() {
           padding: 20px;
           font-family: "JetBrains Mono", monospace;
           font-size: 14px;
-          overflow-x: auto;
+          overflow-x: hidden;
+          max-height: 500px;
+          overflow-y: auto;
         }
 
         .read-contract,
@@ -767,13 +1182,25 @@ export default function Address() {
         }
 
         .function-select,
-        .form-group input {
+        .function-param {
           width: 100%;
           padding: 12px;
           border-radius: 8px;
           border: 1px solid var(--gray-600);
           background: var(--dark-glass);
           color: white;
+          margin-bottom: 10px;
+        }
+
+        .param-input-group {
+          margin-bottom: 15px;
+        }
+
+        .param-label {
+          font-size: 14px;
+          color: var(--gray-300);
+          margin-bottom: 5px;
+          display: block;
         }
 
         .submit-button {
@@ -791,9 +1218,61 @@ export default function Address() {
           transition: all 0.2s ease;
         }
 
-        .submit-button:hover {
+        .submit-button:hover:not(:disabled) {
           transform: translateY(-2px);
           box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+        }
+
+        .submit-button:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+          transform: none;
+        }
+
+        .connect-button {
+          background: linear-gradient(
+            135deg,
+            var(--electric-blue),
+            var(--cyber-cyan)
+          );
+          color: white;
+          border: none;
+          padding: 8px 16px;
+          border-radius: 6px;
+          font-weight: 500;
+          cursor: pointer;
+          font-size: 14px;
+          transition: all 0.2s ease;
+        }
+
+        .connect-button:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+        }
+
+        .wallet-status {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .connected {
+          color: var(--green-400);
+          font-size: 14px;
+          font-weight: 500;
+        }
+
+        .disconnected {
+          color: var(--red-400);
+          font-size: 14px;
+          font-weight: 500;
+        }
+
+        .table-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 15px;
         }
 
         .result-section {
@@ -810,8 +1289,39 @@ export default function Address() {
 
         .result-value {
           font-family: "JetBrains Mono", monospace;
-          font-size: 18px;
+          font-size: 14px;
           color: var(--electric-blue);
+          word-break: break-all;
+          max-height: 300px;
+          overflow-y: auto;
+        }
+
+        .result-value pre {
+          margin: 0;
+          white-space: pre-wrap;
+        }
+
+        .function-info {
+          margin-top: 20px;
+          padding: 16px;
+          background: var(--dark-glass);
+          border-radius: 8px;
+          border-left: 4px solid var(--electric-blue);
+        }
+
+        .function-info h4 {
+          margin-top: 0;
+          color: var(--electric-blue);
+        }
+
+        .function-info p {
+          margin: 8px 0;
+          color: var(--gray-300);
+        }
+
+        .payable-warning {
+          color: var(--yellow-400);
+          font-weight: 500;
         }
 
         .verify-button {
@@ -834,12 +1344,27 @@ export default function Address() {
           box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
         }
 
-        .token-balance {
-          margin-bottom: 4px;
-        }
+        @media (max-width: 768px) {
+          .tabs {
+            overflow-x: auto;
+            white-space: nowrap;
+          }
 
-        .token-balance:last-child {
-          margin-bottom: 0;
+          .tab {
+            padding: 10px 16px;
+            font-size: 14px;
+          }
+
+          .table-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 10px;
+          }
+
+          .wallet-status {
+            width: 100%;
+            justify-content: flex-end;
+          }
         }
       `}</style>
     </div>

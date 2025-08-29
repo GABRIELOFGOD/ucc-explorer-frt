@@ -3,8 +3,8 @@ import io from 'socket.io-client';
 
 // Create axios instance
 const api = axios.create({
-  // baseURL: 'http://localhost:3001/api',
-  baseURL: 'https://ucc.ccpay.space/api',
+  baseURL: 'http://localhost:3001/api',
+  // baseURL: 'https://ucc.ccpay.space/api',
 });
 
 // Add a request interceptor to include the JWT token
@@ -55,6 +55,15 @@ export const getAddressInfo = (address) => api.get(`/address/${address}`);
 
 // Function to verify contract
 export const verifyContract = (data) => api.post('/verify-contract', data);
+
+// Function to get contract details
+export const getContractDetails = (address) => api.get(`/contracts/${address}`);
+
+// Function to get contract source code
+export const getContractSource = (address) => api.get(`/contracts/${address}/source`);
+
+// Function to get contract ABI
+export const getContractABI = (address) => api.get(`/contracts/${address}/abi`);
 
 // Function to get API documentation
 export const getApiDocs = () => api.get('/docs');
