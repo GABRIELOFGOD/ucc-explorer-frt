@@ -85,7 +85,7 @@ export default function Address() {
       } else {
         // Fallback to a read-only provider (like Infura or Alchemy)
         try {
-          const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || "http://localhost:8545";
+          const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || "http://168.231.122.245:8545";
           let readOnlyProvider;
           
           if (ethers.providers) {
