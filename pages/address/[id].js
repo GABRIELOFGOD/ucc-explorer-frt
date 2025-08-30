@@ -60,14 +60,24 @@ export default function Address() {
     const initializeWeb3 = async () => {
       if (typeof window !== "undefined" && window.ethereum) {
         try {
-          const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+          // Check ethers version and use appropriate provider
+          let web3Provider;
+          if (ethers.providers) {
+            // Ethers v5
+            web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+          } else {
+            // Ethers v6
+            web3Provider = new ethers.BrowserProvider(window.ethereum);
+          }
+          
           setProvider(web3Provider);
           
           // Check if already connected
           const accounts = await web3Provider.listAccounts();
           if (accounts.length > 0) {
             setWalletConnected(true);
-            setSigner(web3Provider.getSigner());
+            const signerInstance = await web3Provider.getSigner();
+            setSigner(signerInstance);
           }
         } catch (error) {
           console.error("Error initializing Web3:", error);
@@ -75,9 +85,17 @@ export default function Address() {
       } else {
         // Fallback to a read-only provider (like Infura or Alchemy)
         try {
-          const readOnlyProvider = new ethers.providers.JsonRpcProvider(
-            process.env.NEXT_PUBLIC_RPC_URL || "http://localhost:8545"
-          );
+          const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || "http://localhost:8545";
+          let readOnlyProvider;
+          
+          if (ethers.providers) {
+            // Ethers v5
+            readOnlyProvider = new ethers.providers.JsonRpcProvider(rpcUrl);
+          } else {
+            // Ethers v6
+            readOnlyProvider = new ethers.JsonRpcProvider(rpcUrl);
+          }
+          
           setProvider(readOnlyProvider);
         } catch (error) {
           console.error("Error setting up read-only provider:", error);
@@ -109,9 +127,19 @@ export default function Address() {
     if (typeof window !== "undefined" && window.ethereum) {
       try {
         await window.ethereum.request({ method: "eth_requestAccounts" });
-        const web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+        
+        let web3Provider;
+        if (ethers.providers) {
+          // Ethers v5
+          web3Provider = new ethers.providers.Web3Provider(window.ethereum);
+        } else {
+          // Ethers v6
+          web3Provider = new ethers.BrowserProvider(window.ethereum);
+        }
+        
         setProvider(web3Provider);
-        setSigner(web3Provider.getSigner());
+        const signerInstance = await web3Provider.getSigner();
+        setSigner(signerInstance);
         setWalletConnected(true);
       } catch (error) {
         console.error("Error connecting wallet:", error);
@@ -223,16 +251,31 @@ export default function Address() {
   const parseParameterValue = (value, type) => {
     try {
       if (type.includes('uint') || type.includes('int')) {
-        return ethers.BigNumber.from(value);
+        // Handle both ethers v5 and v6
+        if (ethers.BigNumber) {
+          return ethers.BigNumber.from(value);
+        } else {
+          return BigInt(value);
+        }
       }
       if (type === 'bool') {
         return value.toLowerCase() === 'true';
       }
       if (type.includes('bytes')) {
-        return ethers.utils.hexlify(ethers.utils.toUtf8Bytes(value));
+        // Handle both ethers v5 and v6
+        if (ethers.utils) {
+          return ethers.utils.hexlify(ethers.utils.toUtf8Bytes(value));
+        } else {
+          return ethers.hexlify(ethers.toUtf8Bytes(value));
+        }
       }
       if (type === 'address') {
-        return ethers.utils.getAddress(value);
+        // Handle both ethers v5 and v6
+        if (ethers.utils) {
+          return ethers.utils.getAddress(value);
+        } else {
+          return ethers.getAddress(value);
+        }
       }
       // For arrays, parse as JSON
       if (type.includes('[]')) {
@@ -269,12 +312,18 @@ export default function Address() {
       
       // Format the result based on return type
       let formattedResult;
-      if (ethers.BigNumber.isBigNumber(result)) {
+      if (ethers.BigNumber && ethers.BigNumber.isBigNumber(result)) {
+        // Ethers v5
+        formattedResult = result.toString();
+      } else if (typeof result === 'bigint') {
+        // Ethers v6 or native BigInt
         formattedResult = result.toString();
       } else if (Array.isArray(result)) {
-        formattedResult = JSON.stringify(result, null, 2);
-      } else if (typeof result === 'object') {
-        formattedResult = JSON.stringify(result, null, 2);
+        formattedResult = JSON.stringify(result, (key, value) => 
+          typeof value === 'bigint' ? value.toString() : value, 2);
+      } else if (typeof result === 'object' && result !== null) {
+        formattedResult = JSON.stringify(result, (key, value) => 
+          typeof value === 'bigint' ? value.toString() : value, 2);
       } else {
         formattedResult = result.toString();
       }
@@ -319,13 +368,25 @@ export default function Address() {
       const options = {};
       if (selectedWriteFunction.stateMutability === 'payable') {
         const ethValue = writeParams['_value'] || '0';
-        options.value = ethers.utils.parseEther(ethValue);
+        if (ethers.utils) {
+          // Ethers v5
+          options.value = ethers.utils.parseEther(ethValue);
+        } else {
+          // Ethers v6
+          options.value = ethers.parseEther(ethValue);
+        }
       }
 
       // Estimate gas
       try {
         const gasEstimate = await contract.estimateGas[selectedWriteFunction.name](...params, options);
-        options.gasLimit = gasEstimate.mul(120).div(100); // Add 20% buffer
+        if (ethers.BigNumber && ethers.BigNumber.isBigNumber(gasEstimate)) {
+          // Ethers v5
+          options.gasLimit = gasEstimate.mul(120).div(100);
+        } else {
+          // Ethers v6
+          options.gasLimit = (gasEstimate * BigInt(120)) / BigInt(100);
+        }
       } catch (gasError) {
         console.warn("Gas estimation failed, using default gas limit");
         options.gasLimit = 300000; // Default gas limit
@@ -698,10 +759,10 @@ export default function Address() {
 
                 {address?.isVerified ? (
                   <div className="contract-code">
-                    {/* <pre>
+                    <pre>
                       {contractDetails?.sourceCode ||
                         "Source code not available"}
-                    </pre> */}
+                    </pre>
                   </div>
                 ) : (
                   <div className="detail-item">
@@ -1161,7 +1222,7 @@ export default function Address() {
           padding: 20px;
           font-family: "JetBrains Mono", monospace;
           font-size: 14px;
-          overflow-x: hidden;
+          overflow-x: auto;
           max-height: 500px;
           overflow-y: auto;
         }
