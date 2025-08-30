@@ -3,8 +3,8 @@ import io from 'socket.io-client';
 
 // Create axios instance
 const api = axios.create({
-  baseURL: 'http://localhost:3001/api',
-  // baseURL: 'https://ucc.ccpay.space/api',
+  // baseURL: 'http://localhost:3001/api',
+  baseURL: 'https://ucc.ccpay.space/api',
 });
 
 // Add a request interceptor to include the JWT token
