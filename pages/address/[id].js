@@ -9,6 +9,7 @@ import {
   FaExchangeAlt,
   FaExclamationCircle,
   FaFileContract,
+  FaHashtag,
   FaSearch,
   FaSyncAlt,
   FaUser,
@@ -54,6 +55,29 @@ export default function Address() {
   const [signer, setSigner] = useState(null);
   const [contract, setContract] = useState(null);
   const [walletConnected, setWalletConnected] = useState(false);
+  const [supDec, setSupDec] = useState(null);
+
+  const ERC20_ABI = [
+    "function decimals() view returns (uint8)",
+    "function totalSupply() view returns (uint256)"
+  ];
+
+  async function getTokenInfo() {
+    // connect to provider (you can use Infura, Alchemy, your node, or window.ethereum)
+    const provider = new ethers.JsonRpcProvider("http://168.231.122.245:8545");
+
+    // connect to contract
+    const contract = new ethers.Contract(id, ERC20_ABI, provider);
+
+    // fetch decimals & supply
+    const decimals = await contract.decimals();
+    const rawSupply = await contract.totalSupply();
+
+    // format supply (divide by decimals)
+    const totalSupply = ethers.formatUnits(rawSupply, decimals);
+
+    setSupDec({ totalSupply, decimals });
+  }
 
   // Initialize Web3 provider
   useEffect(() => {
@@ -85,7 +109,7 @@ export default function Address() {
       } else {
         // Fallback to a read-only provider (like Infura or Alchemy)
         try {
-          const rpcUrl = process.env.NEXT_PUBLIC_RPC_URL || "http://168.231.122.245:8545";
+          const rpcUrl = "http://168.231.122.245:8545";
           let readOnlyProvider;
           
           if (ethers.providers) {
@@ -105,6 +129,12 @@ export default function Address() {
 
     initializeWeb3();
   }, []);
+
+  useEffect(() => {
+    if (address?.isContract) {
+      getTokenInfo();
+    }
+  }, [address]);
 
   // Create contract instance when ABI and address are available
   useEffect(() => {
@@ -486,15 +516,35 @@ export default function Address() {
             </div>
           </div>
 
-          <div className="detail-item">
+          {address?.isContract ? (<div className="detail-item">
             <div className="detail-icon">
               <FaExchangeAlt />
             </div>
             <div className="detail-content">
-              <div className="detail-label">Transactions</div>
-              <div className="detail-value">{address?.txnCount}</div>
+              <div className="detail-label">Supply</div>
+              <div className="detail-value">{supDec?.totalSupply}</div>
             </div>
-          </div>
+          </div>) : (
+            <div className="detail-item">
+              <div className="detail-icon">
+                <FaExchangeAlt />
+              </div>
+              <div className="detail-content">
+                <div className="detail-label">Transactions</div>
+                <div className="detail-value">{address?.txnCount}</div>
+              </div>
+            </div>
+          )}
+
+          {address?.isContract && (<div className="detail-item">
+            <div className="detail-icon">
+              <FaHashtag />
+            </div>
+            <div className="detail-content">
+              <div className="detail-label">Decimals</div>
+              <div className="detail-value">{supDec?.decimals}</div>
+            </div>
+          </div>)}
 
           <div className="detail-item">
             <div className="detail-icon">

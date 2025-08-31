@@ -3,17 +3,59 @@ import { getTokens } from "../utils/api";
 import Link from "next/link";
 import { FaSyncAlt } from "react-icons/fa";
 import SearchInput from "../components/search-input";
+import { ethers } from "ethers";
+
+const ERC20_ABI = [
+  "function name() view returns (string)",
+  "function symbol() view returns (string)"
+];
 
 export default function Tokens() {
   const [tokens, setTokens] = useState([]);
   const [loading, setLoading] = useState(true);
 
-
   useEffect(() => {
     const fetchTokens = async () => {
       try {
         const response = await getTokens();
-        // setTokens(response.data.tokens.filter(token => token.symbol));
+        const addresses = response.data; // must be an array of token contract addresses
+
+        // connect to blockchain (RPC or injected wallet)
+        const provider = new ethers.JsonRpcProvider("http://168.231.122.245:8545");
+
+        const tokenData = await Promise.all(
+          addresses.map(async (address) => {
+            try {
+              const contract = new ethers.Contract(address, ERC20_ABI, provider);
+              const name = await contract.name();
+              const symbol = await contract.symbol();
+
+              // Temporary mock data for price/volume/cap
+              return {
+                address,
+                name,
+                symbol,
+                price: "$0.00",
+                change24h: "+0.00%",
+                volume24h: "$0",
+                marketCap: "$0"
+              };
+            } catch (err) {
+              console.error(`Error fetching token data for ${address}`, err);
+              return {
+                address,
+                name: "Unknown",
+                symbol: "N/A",
+                price: "$0.00",
+                change24h: "0.00%",
+                volume24h: "$0",
+                marketCap: "$0"
+              };
+            }
+          })
+        );
+
+        setTokens(tokenData);
       } catch (error) {
         console.error("Error fetching tokens:", error);
       } finally {
@@ -75,7 +117,7 @@ export default function Tokens() {
                         </div>
                         <div className="token-details">
                           <div className="token-symbol">{token.symbol}</div>
-                          <div className="token-name">{token.name}</div>
+                          <div className="token-name adj">{token.name}</div>
                         </div>
                       </div>
                     </td>

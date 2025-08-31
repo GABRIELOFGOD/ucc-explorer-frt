@@ -42,7 +42,7 @@ export const getAllAddresses = (page = 1, limit = 10) => api.get(`/addresses?pag
 export const getTransactionByHash = (hash) => api.get(`/transactions/${hash}`);
 
 // Function to get tokens
-export const getTokens = () => api.get('/tokens');
+export const getTokens = () => api.get('/verified-tokens');
 
 // Function to get validators
 export const getValidators = () => api.get('/validators');

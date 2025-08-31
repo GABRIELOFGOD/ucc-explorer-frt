@@ -79,7 +79,7 @@ export default function Addresses() {
                   <tr key={index}>
                     <td>
                       <div className="hash-row">
-                        <div className="address-icon">A{index + 1}</div>
+                        <div className="address-icon">{index + 1}</div>
                         <div className="address-details">
                           <div className="address-label">{address.name}</div>
                           <Link
