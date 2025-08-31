@@ -87,7 +87,7 @@ export default function Layout({ children }) {
               <FaCopy />
             </button>
           </div>
-          <div className="rpc-url">http://168.231.122.245:8545</div>
+          <div className="rpc-url">https://rpc.ucscan.net</div>
         </div>
       </div>
       

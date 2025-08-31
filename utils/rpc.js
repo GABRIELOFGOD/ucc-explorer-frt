@@ -1,6 +1,6 @@
 // import Web3 from "web3";
 
-// export const RPC_ADDRESS = "http://168.231.122.245:8545";
+// export const RPC_ADDRESS = "https://rpc.ucscan.net";
 // export const WS_ADDRESS  = "ws://168.231.122.245:8546";
 
 // const web3 = new Web3(new Web3.providers.HttpProvider(RPC_ADDRESS));
@@ -57,7 +57,7 @@
 
 import Web3 from "web3";
 
-export const RPC_ADDRESS = "http://168.231.122.245:8545";
+export const RPC_ADDRESS = "https://rpc.ucscan.net";
 export const WS_ADDRESS = "ws://168.231.122.245:8546";
 
 // Initialize Web3 instances with better error handling

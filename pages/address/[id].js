@@ -64,7 +64,7 @@ export default function Address() {
 
   async function getTokenInfo() {
     // connect to provider (you can use Infura, Alchemy, your node, or window.ethereum)
-    const provider = new ethers.JsonRpcProvider("http://168.231.122.245:8545");
+    const provider = new ethers.JsonRpcProvider("https://rpc.ucscan.net");
 
     // connect to contract
     const contract = new ethers.Contract(id, ERC20_ABI, provider);
@@ -109,7 +109,7 @@ export default function Address() {
       } else {
         // Fallback to a read-only provider (like Infura or Alchemy)
         try {
-          const rpcUrl = "http://168.231.122.245:8545";
+          const rpcUrl = "https://rpc.ucscan.net";
           let readOnlyProvider;
           
           if (ethers.providers) {

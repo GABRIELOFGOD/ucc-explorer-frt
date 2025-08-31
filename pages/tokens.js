@@ -21,7 +21,7 @@ export default function Tokens() {
         const addresses = response.data; // must be an array of token contract addresses
 
         // connect to blockchain (RPC or injected wallet)
-        const provider = new ethers.JsonRpcProvider("http://168.231.122.245:8545");
+        const provider = new ethers.JsonRpcProvider("https://rpc.ucscan.net");
 
         const tokenData = await Promise.all(
           addresses.map(async (address) => {

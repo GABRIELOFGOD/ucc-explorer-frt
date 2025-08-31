@@ -3,7 +3,7 @@
 // const wsProvider = new Web3.providers.WebsocketProvider("ws://168.231.122.245:8546");
 // const web3 = new Web3(wsProvider);
 
-// export const RPC_ADDRESS = "http://168.231.122.245:8545";
+// export const RPC_ADDRESS = "https://rpc.ucscan.net";
 
 // // ========= VALIDATORS =============== //
 // export const getValidators = async () => {
