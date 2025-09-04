@@ -281,9 +281,10 @@ input {
   display: flex;
   align-items: center;
   padding: 16px 32px;
-  background: var(--dark-glass);
+  /* background: var(--dark-glass); */
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  /* box-shadow: .5px .5px 5px; */
   border-radius: 12px;
   margin-bottom: var(--section-spacing);
   position: sticky;
@@ -293,8 +294,8 @@ input {
 
 .search-container {
   flex: 1;
-  max-width: 512px;
   position: relative;
+  max-width: 100%;
 }
 
 .search-bar {
