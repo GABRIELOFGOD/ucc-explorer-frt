@@ -149,7 +149,7 @@ export default function Transactions() {
                         "Contract Creation"
                       )}
                     </td>
-                    <td>{tx.value} ETH</td>
+                    <td>{tx.value} tUCC</td>
                   </tr>
                 ))}
               </tbody>
