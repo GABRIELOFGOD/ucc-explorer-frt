@@ -1,159 +1,3 @@
-// import { useState, useEffect } from 'react';
-// import Link from 'next/link';
-// import { FaSyncAlt } from 'react-icons/fa';
-// import SearchInput from '../components/search-input';
-// import { timeAgo } from '../utils/api';
-
-// // Define transaction type for TypeScript (optional, uncomment if using TS)
-// // interface Transaction {
-// //   hash: string;
-// //   from: string;
-// //   to?: string;
-// //   value: string;
-// //   blockNumber: number;
-// //   timestamp: number;
-// // }
-
-// export default function Transactions() {
-//   const [transactions, setTransactions] = useState([]); // Use Transaction[] for TS
-//   const [loading, setLoading] = useState(true);
-//   const [ws, setWs] = useState(null);
-
-//   useEffect(() => {
-//     // Load initial transactions
-//     const fetchHistory = async () => {
-//       try {
-//         const res = await fetch("http://localhost:3500/transactions");
-//         if (!res.ok) throw new Error("Failed to fetch transactions");
-//         const data = await res.json();
-//         setTransactions(data.transactions);
-//       } catch (err) {
-//         console.error("Error fetching history:", err);
-//       } finally {
-//         setLoading(false);
-//       }
-//     };
-
-//     fetchHistory();
-
-//     // WebSocket for live updates
-//     const connectWebSocket = () => {
-//       const socket = new WebSocket("ws://localhost:4000");
-
-//       socket.onopen = () => {
-//         console.log("✅ WS connected");
-//         setWs(socket);
-//       };
-
-//       socket.onmessage = (event) => {
-//         try {
-//           const tx = JSON.parse(event.data);
-//           setTransactions((prev) => {
-//             // Prevent duplicates by checking hash
-//             if (prev.some((existing) => existing.hash === tx.hash)) {
-//               return prev;
-//             }
-//             return [tx, ...prev].slice(0, 50); // Keep max 50
-//           });
-//         } catch (err) {
-//           console.error("Error parsing WebSocket message:", err);
-//         }
-//       };
-
-//       socket.onclose = () => {
-//         console.log("❌ WS disconnected, attempting to reconnect...");
-//         setTimeout(connectWebSocket, 5000); // Reconnect after 5s
-//       };
-
-//       socket.onerror = (err) => {
-//         console.error("WebSocket error:", err);
-//       };
-
-//       setWs(socket);
-//     };
-
-//     connectWebSocket();
-
-//     // Cleanup WebSocket on unmount
-//     return () => {
-//       if (ws) {
-//         ws.close();
-//       }
-//     };
-//   }, []); // Empty dependency array to run once on mount
-
-//   return (
-//     <div className="main-content">
-//       <div className="top-nav">
-//         <SearchInput />
-//         <div className="network-indicator">
-//           <div className="status-dot"></div>
-//           <div className="network-name">Testnet</div>
-//         </div>
-//       </div>
-
-//       <div className="page-header">
-//         <h1 className="page-title">Transactions</h1>
-//       </div>
-
-//       <div className="table-container">
-//         {loading ? (
-//           <div className="detail-item">
-//             <FaSyncAlt className="load-icon-spin" />
-//             <span>Loading transactions...</span>
-//           </div>
-//         ) : transactions.length === 0 ? (
-//           <div className="detail-item">
-//             <span>No transactions found</span>
-//           </div>
-//         ) : (
-//           <table className="transactions-table">
-//             <thead>
-//               <tr>
-//                 <th>Txn Hash</th>
-//                 <th>Block</th>
-//                 <th>Age</th>
-//                 <th>From</th>
-//                 <th>To</th>
-//                 <th>Value</th>
-//               </tr>
-//             </thead>
-//             <tbody>
-//               {transactions.map((tx) => (
-//                 <tr key={tx.hash}>
-//                   <td>
-//                     <Link href={`/tx/${tx.hash}`}>
-//                       {tx.hash.slice(0, 6)}...{tx.hash.slice(-4)}
-//                     </Link>
-//                   </td>
-//                   <td>
-//                     <Link href={`/block/${tx.blockNumber}`}>#{tx.blockNumber}</Link>
-//                   </td>
-//                   <td>{tx.timestamp ? timeAgo(tx.timestamp) : "N/A"}</td>
-//                   <td>
-//                     <Link href={`/address/${tx.from}`}>
-//                       {tx.from.slice(0, 6)}...{tx.from.slice(-4)}
-//                     </Link>
-//                   </td>
-//                   <td>
-//                     {tx.to ? (
-//                       <Link href={`/address/${tx.to}`}>
-//                         {tx.to.slice(0, 6)}...{tx.to.slice(-4)}
-//                       </Link>
-//                     ) : (
-//                       "Contract Creation"
-//                     )}
-//                   </td>
-//                   <td>{tx.value} ETH</td>
-//                 </tr>
-//               ))}
-//             </tbody>
-//           </table>
-//         )}
-//       </div>
-//     </div>
-//   );
-// }
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -172,7 +16,7 @@ export default function Transactions() {
     // Load initial transactions
     const fetchHistory = async () => {
       try {
-        const res = await fetch(`http://localhost:3500/transactions?page=${page}&pageSize=50`);
+        const res = await fetch(`http://168.231.122.245:3500/transactions?page=${page}&pageSize=50`);
         if (!res.ok) throw new Error("Failed to fetch transactions");
         const data = await res.json();
         setTransactions(data.transactions);
@@ -188,7 +32,7 @@ export default function Transactions() {
 
     // WebSocket for live updates
     const connectWebSocket = () => {
-      const socket = new WebSocket("ws://localhost:4000");
+      const socket = new WebSocket("ws://168.231.122.245:4000");
 
       socket.onopen = () => {
         console.log("✅ WS connected");
