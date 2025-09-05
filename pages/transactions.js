@@ -1,34 +1,243 @@
+// import { useState, useEffect } from 'react';
+// import Link from 'next/link';
+// import { FaSyncAlt } from 'react-icons/fa';
+// import SearchInput from '../components/search-input';
+// import { timeAgo } from '../utils/api';
+
+// // Define transaction type for TypeScript (optional, uncomment if using TS)
+// // interface Transaction {
+// //   hash: string;
+// //   from: string;
+// //   to?: string;
+// //   value: string;
+// //   blockNumber: number;
+// //   timestamp: number;
+// // }
+
+// export default function Transactions() {
+//   const [transactions, setTransactions] = useState([]); // Use Transaction[] for TS
+//   const [loading, setLoading] = useState(true);
+//   const [ws, setWs] = useState(null);
+
+//   useEffect(() => {
+//     // Load initial transactions
+//     const fetchHistory = async () => {
+//       try {
+//         const res = await fetch("http://localhost:3500/transactions");
+//         if (!res.ok) throw new Error("Failed to fetch transactions");
+//         const data = await res.json();
+//         setTransactions(data.transactions);
+//       } catch (err) {
+//         console.error("Error fetching history:", err);
+//       } finally {
+//         setLoading(false);
+//       }
+//     };
+
+//     fetchHistory();
+
+//     // WebSocket for live updates
+//     const connectWebSocket = () => {
+//       const socket = new WebSocket("ws://localhost:4000");
+
+//       socket.onopen = () => {
+//         console.log("✅ WS connected");
+//         setWs(socket);
+//       };
+
+//       socket.onmessage = (event) => {
+//         try {
+//           const tx = JSON.parse(event.data);
+//           setTransactions((prev) => {
+//             // Prevent duplicates by checking hash
+//             if (prev.some((existing) => existing.hash === tx.hash)) {
+//               return prev;
+//             }
+//             return [tx, ...prev].slice(0, 50); // Keep max 50
+//           });
+//         } catch (err) {
+//           console.error("Error parsing WebSocket message:", err);
+//         }
+//       };
+
+//       socket.onclose = () => {
+//         console.log("❌ WS disconnected, attempting to reconnect...");
+//         setTimeout(connectWebSocket, 5000); // Reconnect after 5s
+//       };
+
+//       socket.onerror = (err) => {
+//         console.error("WebSocket error:", err);
+//       };
+
+//       setWs(socket);
+//     };
+
+//     connectWebSocket();
+
+//     // Cleanup WebSocket on unmount
+//     return () => {
+//       if (ws) {
+//         ws.close();
+//       }
+//     };
+//   }, []); // Empty dependency array to run once on mount
+
+//   return (
+//     <div className="main-content">
+//       <div className="top-nav">
+//         <SearchInput />
+//         <div className="network-indicator">
+//           <div className="status-dot"></div>
+//           <div className="network-name">Testnet</div>
+//         </div>
+//       </div>
+
+//       <div className="page-header">
+//         <h1 className="page-title">Transactions</h1>
+//       </div>
+
+//       <div className="table-container">
+//         {loading ? (
+//           <div className="detail-item">
+//             <FaSyncAlt className="load-icon-spin" />
+//             <span>Loading transactions...</span>
+//           </div>
+//         ) : transactions.length === 0 ? (
+//           <div className="detail-item">
+//             <span>No transactions found</span>
+//           </div>
+//         ) : (
+//           <table className="transactions-table">
+//             <thead>
+//               <tr>
+//                 <th>Txn Hash</th>
+//                 <th>Block</th>
+//                 <th>Age</th>
+//                 <th>From</th>
+//                 <th>To</th>
+//                 <th>Value</th>
+//               </tr>
+//             </thead>
+//             <tbody>
+//               {transactions.map((tx) => (
+//                 <tr key={tx.hash}>
+//                   <td>
+//                     <Link href={`/tx/${tx.hash}`}>
+//                       {tx.hash.slice(0, 6)}...{tx.hash.slice(-4)}
+//                     </Link>
+//                   </td>
+//                   <td>
+//                     <Link href={`/block/${tx.blockNumber}`}>#{tx.blockNumber}</Link>
+//                   </td>
+//                   <td>{tx.timestamp ? timeAgo(tx.timestamp) : "N/A"}</td>
+//                   <td>
+//                     <Link href={`/address/${tx.from}`}>
+//                       {tx.from.slice(0, 6)}...{tx.from.slice(-4)}
+//                     </Link>
+//                   </td>
+//                   <td>
+//                     {tx.to ? (
+//                       <Link href={`/address/${tx.to}`}>
+//                         {tx.to.slice(0, 6)}...{tx.to.slice(-4)}
+//                       </Link>
+//                     ) : (
+//                       "Contract Creation"
+//                     )}
+//                   </td>
+//                   <td>{tx.value} ETH</td>
+//                 </tr>
+//               ))}
+//             </tbody>
+//           </table>
+//         )}
+//       </div>
+//     </div>
+//   );
+// }
+
 import { useState, useEffect } from 'react';
-import { getLatestTransactions, timeAgo } from '../utils/api';
 import Link from 'next/link';
-import { FaChevronLeft, FaChevronRight, FaSyncAlt } from 'react-icons/fa';
+import { FaSyncAlt } from 'react-icons/fa';
 import SearchInput from '../components/search-input';
+import { timeAgo } from '../utils/api';
 
 export default function Transactions() {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [ws, setWs] = useState(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
-    const fetchTransactions = async () => {
+    // Load initial transactions
+    const fetchHistory = async () => {
       try {
-        const response = await getLatestTransactions(currentPage, 10);
-        setTransactions(response.data.transactions);
-        setTotalPages(response.data.totalPages >= 10 ? 10 : response.data.totalPages);
-      } catch (error) {
-        console.error('Error fetching transactions:', error);
+        const res = await fetch(`http://localhost:3500/transactions?page=${page}&pageSize=50`);
+        if (!res.ok) throw new Error("Failed to fetch transactions");
+        const data = await res.json();
+        setTransactions(data.transactions);
+        setTotal(data.total);
+      } catch (err) {
+        console.error("Error fetching history:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchTransactions();
-  }, [currentPage]);
+    fetchHistory();
 
-  const handlePageChange = (newPage) => {
-    if (newPage >= 1 && newPage <= totalPages) {
-      setCurrentPage(newPage);
+    // WebSocket for live updates
+    const connectWebSocket = () => {
+      const socket = new WebSocket("ws://localhost:4000");
+
+      socket.onopen = () => {
+        console.log("✅ WS connected");
+        setWs(socket);
+      };
+
+      socket.onmessage = (event) => {
+        try {
+          const tx = JSON.parse(event.data);
+          setTransactions((prev) => {
+            if (prev.some((existing) => existing.hash === tx.hash)) {
+              return prev;
+            }
+            return [tx, ...prev].slice(0, 50);
+          });
+        } catch (err) {
+          console.error("Error parsing WebSocket message:", err);
+        }
+      };
+
+      socket.onclose = () => {
+        console.log("❌ WS disconnected, attempting to reconnect...");
+        setTimeout(connectWebSocket, 5000);
+      };
+
+      socket.onerror = (err) => {
+        console.error("WebSocket error:", err);
+      };
+
+      setWs(socket);
+    };
+
+    connectWebSocket();
+
+    return () => {
+      if (ws) {
+        ws.close();
+      }
+    };
+  }, [page]); // Re-fetch when page changes
+
+  const handleNextPage = () => {
+    setPage((prev) => prev + 1);
+    setLoading(true);
+  };
+
+  const handlePrevPage = () => {
+    if (page > 1) {
+      setPage((prev) => prev - 1);
       setLoading(true);
     }
   };
@@ -42,113 +251,75 @@ export default function Transactions() {
           <div className="network-name">Testnet</div>
         </div>
       </div>
-      
+
       <div className="page-header">
         <h1 className="page-title">Transactions</h1>
-        <div className="pagination">
-          <button 
-            className="pagination-btn" 
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-          >
-            <FaChevronLeft />
-          </button>
-          {[...Array(totalPages)].map((_, i) => (
-            <button 
-              key={i + 1}
-              className={`pagination-btn ${currentPage === i + 1 ? 'active' : ''}`}
-              onClick={() => handlePageChange(i + 1)}
-            >
-              {i + 1}
-            </button>
-          ))}
-          <button 
-            className="pagination-btn" 
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          >
-            <FaChevronRight />
-          </button>
-        </div>
       </div>
-      
+
       <div className="table-container">
-        <div className="table-header">
-          <div className="table-title">Transaction List</div>
-        </div>
-        
         {loading ? (
           <div className="detail-item">
-            <div className="detail-icon">
-              <FaSyncAlt className="load-icon-spin" />
-            </div>
-            <div className="detail-content">
-              <div className="detail-label">Loading transactions...</div>
-            </div>
+            <FaSyncAlt className="load-icon-spin" />
+            <span>Loading transactions...</span>
+          </div>
+        ) : transactions.length === 0 ? (
+          <div className="detail-item">
+            <span>No transactions found</span>
           </div>
         ) : (
-          <div className="table-responsive">
+          <>
             <table className="transactions-table">
               <thead>
                 <tr>
                   <th>Txn Hash</th>
-                  <th>Method</th>
                   <th>Block</th>
                   <th>Age</th>
                   <th>From</th>
                   <th>To</th>
                   <th>Value</th>
-                  <th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {transactions.map((tx) => (
                   <tr key={tx.hash}>
                     <td>
-                      <div className="hash-row">
-                        <Link href={`/tx/${tx.hash}`} className="hash-text">
-                          {tx.hash.substring(0, 6)}...{tx.hash.substring(tx.hash.length - 4)}
-                        </Link>
-                      </div>
-                    </td>
-                    <td>
-                      <div className="method-badge method-transfer">Transfer</div>
-                    </td>
-                    <td>
-                      <Link href={`/block/${tx.blockNumber}`} className="hash-text">
-                        #{tx.blockNumber?.toLocaleString()}
+                      <Link href={`/tx/${tx.hash}`}>
+                        {tx.hash.slice(0, 6)}...{tx.hash.slice(-4)}
                       </Link>
+                    </td>
+                    <td>
+                      <Link href={`/block/${tx.blockNumber}`}>#{tx.blockNumber}</Link>
                     </td>
                     <td>{tx.timestamp ? timeAgo(tx.timestamp) : "N/A"}</td>
                     <td>
-                      <div className="hash-row">
-                        <Link href={`/address/${tx.from}`} className="hash-text">
-                          {tx.from.substring(0, 6)}...{tx.from.substring(tx.from.length - 4)}
-                        </Link>
-                      </div>
+                      <Link href={`/address/${tx.from}`}>
+                        {tx.from.slice(0, 6)}...{tx.from.slice(-4)}
+                      </Link>
                     </td>
                     <td>
                       {tx.to ? (
-                        <div className="hash-row">
-                          <Link href={`/address/${tx.to}`} className="hash-text">
-                            {tx.to.substring(0, 6)}...{tx.to.substring(tx.to.length - 4)}
-                          </Link>
-                        </div>
+                        <Link href={`/address/${tx.to}`}>
+                          {tx.to.slice(0, 6)}...{tx.to.slice(-4)}
+                        </Link>
                       ) : (
-                        <div className="hash-text">Contract Creation</div>
+                        "Contract Creation"
                       )}
                     </td>
-                    <td>
-                      <div className="amount-value amount-in">+{tx.value}</div>
-                    </td>
-                    <td>
-                      <div className="status-badge status-success">Success</div>
-                    </td>
+                    <td>{tx.value} ETH</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+            <div className="pagination">
+              <button onClick={handlePrevPage} disabled={page === 1}>
+                Previous
+              </button>
+              <span>Page {page}</span>
+              <button onClick={handleNextPage} disabled={transactions.length < 50}>
+                Next
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>
