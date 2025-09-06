@@ -157,8 +157,20 @@ export default function Layout({ children }) {
 
       {/* Sidebar */}
       <div className={`sidebar ${sidebarOpen ? "open" : ""}`}>
-        <div className="logo-section">
+        {/* <div className="logo-section">
           <div className="logo-icon">UC</div>
+          <div className="logo-text">
+            <div className="main">Universe Chain</div>
+            <div className="sub">Testnet Explorer</div>
+          </div>
+        </div> */}
+
+        <div className="image-logo">
+          <img
+            src='/ucc-logo.svg'
+            alt='Logo'
+            className='logo-image'
+          />
           <div className="logo-text">
             <div className="main">Universe Chain</div>
             <div className="sub">Testnet Explorer</div>

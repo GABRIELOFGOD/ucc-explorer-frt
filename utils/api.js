@@ -118,7 +118,7 @@ export const timeAgo = (timestamp) => {
 let socket;
 
 export const initWebSocket = (onData) => {
-  if (!socket) {
+if (!socket) {
     // socket = io('http://localhost:3001');
     socket = io('https://ucc.ccpay.space');
     

@@ -792,6 +792,20 @@ input {
   animation: spin 1s linear infinite;
 }
 
+.image-logo {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 15px;
+}
+
+.image-logo img {
+  margin: auto 0;
+}
+
+.logo-text {
+  margin: auto 0;
+}
+
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
