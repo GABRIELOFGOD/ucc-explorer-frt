@@ -1,85 +1,227 @@
+import { useState, useEffect } from 'react';
+import { timeAgo, getLatestTransactions, initWebSocket, closeWebSocket } from "../utils/api";
+import Link from 'next/link';
+import { FaChevronLeft, FaChevronRight, FaSearch, FaSyncAlt } from 'react-icons/fa';
+import SearchInput from '../components/search-input';
 
-// import { useState, useEffect } from 'react';
-// import Link from 'next/link';
-// import { FaSyncAlt } from 'react-icons/fa';
-// import SearchInput from '../components/search-input';
-// import { timeAgo } from '../utils/api';
+export default function Transactions() {
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        const response = await getLatestTransactions(currentPage, 10); // API wrapper
+        setTransactions(response.data.transactions);
+        setTotalPages(response.data.totalPages);
+      } catch (error) {
+        console.error("Error fetching transactions:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTransactions();
+  }, [currentPage]);
+
+  // WebSocket for real-time updates
+  useEffect(() => {
+    const socket = initWebSocket((data) => {
+      if (currentPage === 1) {
+        setTransactions((prev) => {
+          const newTxs = [...data.latestTransactions, ...prev];
+          return newTxs.slice(0, 20); // keep only 10 per page
+        });
+      }
+    });
+
+    return () => {
+      closeWebSocket();
+    };
+  }, [currentPage]);
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 1 && newPage <= totalPages) {
+      setCurrentPage(newPage);
+      setLoading(true);
+    }
+  };
+
+  return (
+    <div className="main-content">
+      <div className="top-nav">
+        <SearchInput />
+        <div className="network-indicator">
+          <div className="status-dot"></div>
+          <div className="network-name">Testnet</div>
+        </div>
+      </div>
+      
+      <div className="page-header">
+        <h1 className="page-title">Transactions</h1>
+        <div className="pagination">
+          <button 
+            className="pagination-btn" 
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            <FaChevronLeft />
+          </button>
+          {[...Array(totalPages)].map((_, i) => (
+            <button 
+              key={i + 1}
+              className={`pagination-btn ${currentPage === i + 1 ? 'active' : ''}`}
+              onClick={() => handlePageChange(i + 1)}
+            >
+              {i + 1}
+            </button>
+          ))}
+          <button 
+            className="pagination-btn" 
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            <FaChevronRight />
+          </button>
+        </div>
+      </div>
+      
+      <div className="table-container">
+        <div className="table-header">
+          <div className="table-title">Transaction List</div>
+        </div>
+        
+        {loading ? (
+          <div className="detail-item">
+            <div className="detail-icon">
+              <FaSyncAlt />
+            </div>
+            <div className="detail-content">
+              <div className="detail-label">Loading transactions...</div>
+            </div>
+          </div>
+        ) : (
+          <div className="table-responsive">
+            <table className="transactions-table">
+              <thead>
+                <tr>
+                  <th>Txn Hash</th>
+                  <th>Method</th>
+                  <th>Block</th>
+                  <th>Age</th>
+                  <th>From</th>
+                  <th>To</th>
+                  <th>Value</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {transactions.map((tx) => (
+                  <tr key={tx.hash}>
+                    <td>
+                      <div className="hash-row">
+                        <Link href={`/tx/${tx.hash}`} className="hash-text">
+                          {tx.hash.substring(0, 6)}...{tx.hash.substring(tx.hash.length - 4)}
+                        </Link>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="method-badge method-transfer">Transfer</div>
+                    </td>
+                    <td>
+                      <Link href={`/block/${tx.blockNumber}`} className="hash-text">
+                        #{tx.blockNumber?.toLocaleString()}
+                      </Link>
+                    </td>
+                    <td>{tx.timestamp ? timeAgo(tx.timestamp) : "N/A"}</td>
+                    <td>
+                      <div className="hash-row">
+                        <Link href={`/address/${tx.from}`} className="hash-text">
+                          {tx.from.substring(0, 6)}...{tx.from.substring(tx.from.length - 4)}
+                        </Link>
+                      </div>
+                    </td>
+                    <td>
+                      {tx.to ? (
+                        <div className="hash-row">
+                          <Link href={`/address/${tx.to}`} className="hash-text">
+                            {tx.to.substring(0, 6)}...{tx.to.substring(tx.to.length - 4)}
+                          </Link>
+                        </div>
+                      ) : (
+                        <div className="hash-text">Contract Creation</div>
+                      )}
+                    </td>
+                    <td>
+                      <div className="amount-value amount-in">+{tx.value}</div>
+                    </td>
+                    <td>
+                      <div className="status-badge status-success">Success</div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// import { useState, useEffect } from "react";
+// import Link from "next/link";
+// import { FaChevronLeft, FaChevronRight, FaSyncAlt } from 'react-icons/fa';
+// import SearchInput from "../components/search-input";
+// import { timeAgo, getLatestTransactions, initWebSocket, closeWebSocket } from "../utils/api";
 
 // export default function Transactions() {
 //   const [transactions, setTransactions] = useState([]);
 //   const [loading, setLoading] = useState(true);
-//   const [ws, setWs] = useState(null);
-//   const [page, setPage] = useState(1);
-//   const [total, setTotal] = useState(0);
+//   const [currentPage, setCurrentPage] = useState(1);
+//   const [totalPages, setTotalPages] = useState(1);
+//   const [loadingSearch, setLoadingSearch] = useState(false);
 
+//   // Fetch paginated transactions
 //   useEffect(() => {
-//     // Load initial transactions
-//     const fetchHistory = async () => {
+//     const fetchTransactions = async () => {
 //       try {
-//         const res = await fetch(`http://localhost:3500/transactions?page=${page}&pageSize=50`);
-//         // const res = await fetch(`http://168.231.122.245:3500/transactions?page=${page}&pageSize=50`);
-//         if (!res.ok) throw new Error("Failed to fetch transactions");
-//         const data = await res.json();
-//         console.log("Here", data);
-//         setTransactions(data.transactions);
-//         setTotal(data.total);
-//       } catch (err) {
-//         console.error("Error fetching history:", err);
+//         const response = await getLatestTransactions(page, 10); // API wrapper
+//         setTransactions(response.data.transactions);
+//         setTotalPages(response.data.totalPages);
+//       } catch (error) {
+//         console.error("Error fetching transactions:", error);
 //       } finally {
 //         setLoading(false);
 //       }
 //     };
 
-//     fetchHistory();
+//     fetchTransactions();
+//   }, [page]);
 
-//     // WebSocket for live updates
-//     const connectWebSocket = () => {
-//       const socket = new WebSocket("ws://localhost:4000");
-//       // const socket = new WebSocket("ws://168.231.122.245:4000");
-
-//       socket.onopen = () => {
-//         console.log("✅ WS connected");
-//         setWs(socket);
-//       };
-
-//       socket.onmessage = (event) => {
-//         try {
-//           const tx = JSON.parse(event.data);
-//           setTransactions((prev) => {
-//             if (prev.some((existing) => existing.hash === tx.hash)) {
-//               return prev;
-//             }
-//             return [tx, ...prev].slice(0, 50);
-//           });
-//         } catch (err) {
-//           console.error("Error parsing WebSocket message:", err);
-//         }
-//       };
-
-//       socket.onclose = () => {
-//         console.log("❌ WS disconnected, attempting to reconnect...");
-//         setTimeout(connectWebSocket, 5000);
-//       };
-
-//       socket.onerror = (err) => {
-//         console.error("WebSocket error:", err);
-//       };
-
-//       setWs(socket);
-//     };
-
-//     connectWebSocket();
+//   // WebSocket for real-time updates
+//   useEffect(() => {
+//     const socket = initWebSocket((data) => {
+//       if (page === 1) {
+//         setTransactions((prev) => {
+//           const newTxs = [...data.latestTransactions, ...prev];
+//           return newTxs.slice(0, 20); // keep only 10 per page
+//         });
+//       }
+//     });
 
 //     return () => {
-//       if (ws) {
-//         ws.close();
-//       }
+//       closeWebSocket();
 //     };
-//   }, [page]); // Re-fetch when page changes
+//   }, [currentPage]);
 
 //   const handleNextPage = () => {
-//     setPage((prev) => prev + 1);
-//     setLoading(true);
+//     if (currentPage < totalPages) {
+//       setPage((prev) => prev + 1);
+//       setLoading(true);
+//     }
 //   };
 
 //   const handlePrevPage = () => {
@@ -98,221 +240,115 @@
 //           <div className="network-name">Testnet</div>
 //         </div>
 //       </div>
-
+      
 //       <div className="page-header">
 //         <h1 className="page-title">Transactions</h1>
+//         <div className="pagination">
+//           <button 
+//             className="pagination-btn" 
+//             onClick={() => handlePageChange(currentPage - 1)}
+//             disabled={currentPage === 1}
+//           >
+//             <FaChevronLeft />
+//           </button>
+//           {[...Array(totalPages)].map((_, i) => (
+//             <button 
+//               key={i + 1}
+//               className={`pagination-btn ${currentPage === i + 1 ? 'active' : ''}`}
+//               onClick={() => handlePageChange(i + 1)}
+//             >
+//               {i + 1}
+//             </button>
+//           ))}
+//           <button 
+//             className="pagination-btn" 
+//             onClick={() => handlePageChange(currentPage + 1)}
+//             disabled={currentPage === totalPages}
+//           >
+//             <FaChevronRight />
+//           </button>
+//         </div>
 //       </div>
-
+      
 //       <div className="table-container">
+//         <div className="table-header">
+//           <div className="table-title">Transaction List</div>
+//         </div>
+        
 //         {loading ? (
 //           <div className="detail-item">
-//             <FaSyncAlt className="load-icon-spin" />
-//             <span>Loading transactions...</span>
-//           </div>
-//         ) : transactions.length === 0 ? (
-//           <div className="detail-item">
-//             <span>No transactions found</span>
+//             <div className="detail-icon">
+//               <FaSyncAlt />
+//             </div>
+//             <div className="detail-content">
+//               <div className="detail-label">Loading transactions...</div>
+//             </div>
 //           </div>
 //         ) : (
-//           <>
+//           <div className="table-responsive">
 //             <table className="transactions-table">
 //               <thead>
 //                 <tr>
 //                   <th>Txn Hash</th>
+//                   <th>Method</th>
 //                   <th>Block</th>
 //                   <th>Age</th>
 //                   <th>From</th>
 //                   <th>To</th>
 //                   <th>Value</th>
+//                   <th>Status</th>
 //                 </tr>
 //               </thead>
 //               <tbody>
 //                 {transactions.map((tx) => (
 //                   <tr key={tx.hash}>
 //                     <td>
-//                       <Link href={`/tx/${tx.hash}`}>
-//                         {tx.hash.slice(0, 6)}...{tx.hash.slice(-4)}
-//                       </Link>
+//                       <div className="hash-row">
+//                         <Link href={`/tx/${tx.hash}`} className="hash-text">
+//                           {tx.hash.substring(0, 6)}...{tx.hash.substring(tx.hash.length - 4)}
+//                         </Link>
+//                       </div>
 //                     </td>
 //                     <td>
-//                       <Link href={`/block/${tx.blockNumber}`}>#{tx.blockNumber}</Link>
+//                       <div className="method-badge method-transfer">Transfer</div>
+//                     </td>
+//                     <td>
+//                       <Link href={`/block/${tx.blockNumber}`} className="hash-text">
+//                         #{tx.blockNumber?.toLocaleString()}
+//                       </Link>
 //                     </td>
 //                     <td>{tx.timestamp ? timeAgo(tx.timestamp) : "N/A"}</td>
 //                     <td>
-//                       <Link href={`/address/${tx.from}`}>
-//                         {tx.from.slice(0, 6)}...{tx.from.slice(-4)}
-//                       </Link>
+//                       <div className="hash-row">
+//                         <Link href={`/address/${tx.from}`} className="hash-text">
+//                           {tx.from.substring(0, 6)}...{tx.from.substring(tx.from.length - 4)}
+//                         </Link>
+//                       </div>
 //                     </td>
 //                     <td>
 //                       {tx.to ? (
-//                         <Link href={`/address/${tx.to}`}>
-//                           {tx.to.slice(0, 6)}...{tx.to.slice(-4)}
-//                         </Link>
+//                         <div className="hash-row">
+//                           <Link href={`/address/${tx.to}`} className="hash-text">
+//                             {tx.to.substring(0, 6)}...{tx.to.substring(tx.to.length - 4)}
+//                           </Link>
+//                         </div>
 //                       ) : (
-//                         "Contract Creation"
+//                         <div className="hash-text">Contract Creation</div>
 //                       )}
 //                     </td>
-//                     <td>{tx.value} tUCC</td>
+//                     <td>
+//                       <div className="amount-value amount-in">+{tx.value}</div>
+//                     </td>
+//                     <td>
+//                       <div className="status-badge status-success">Success</div>
+//                     </td>
 //                   </tr>
 //                 ))}
 //               </tbody>
 //             </table>
-//             <div className="pagination">
-//               <button onClick={handlePrevPage} disabled={page === 1}>
-//                 Previous
-//               </button>
-//               <span>Page {page}</span>
-//               <button onClick={handleNextPage} disabled={transactions.length < 50}>
-//                 Next
-//               </button>
-//             </div>
-//           </>
+//           </div>
 //         )}
 //       </div>
 //     </div>
 //   );
 // }
-
-import { useState, useEffect } from "react";
-import Link from "next/link";
-import { FaSyncAlt } from "react-icons/fa";
-import SearchInput from "../components/search-input";
-import { timeAgo, getLatestTransactions, initWebSocket, closeWebSocket } from "../utils/api";
-
-export default function Transactions() {
-  const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(0);
-
-  // Fetch paginated transactions
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      try {
-        const response = await getLatestTransactions(page, 10); // API wrapper
-        setTransactions(response.data.transactions);
-        setTotalPages(response.data.totalPages);
-      } catch (error) {
-        console.error("Error fetching transactions:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTransactions();
-  }, [page]);
-
-  // WebSocket for real-time updates
-  useEffect(() => {
-    const socket = initWebSocket((data) => {
-      if (page === 1) {
-        setTransactions((prev) => {
-          const newTxs = [...data.latestTransactions, ...prev];
-          return newTxs.slice(0, 20); // keep only 10 per page
-        });
-      }
-    });
-
-    return () => {
-      closeWebSocket();
-    };
-  }, [page]);
-
-  const handleNextPage = () => {
-    if (page < totalPages) {
-      setPage((prev) => prev + 1);
-      setLoading(true);
-    }
-  };
-
-  const handlePrevPage = () => {
-    if (page > 1) {
-      setPage((prev) => prev - 1);
-      setLoading(true);
-    }
-  };
-
-  return (
-    <div className="main-content">
-      <div className="top-nav">
-        <SearchInput />
-        <div className="network-indicator">
-          <div className="status-dot"></div>
-          <div className="network-name">Testnet</div>
-        </div>
-      </div>
-
-      <div className="page-header">
-        <h1 className="page-title">Transactions</h1>
-      </div>
-
-      <div className="table-container">
-        {loading ? (
-          <div className="detail-item">
-            <FaSyncAlt className="load-icon-spin" />
-            <span>Loading transactions...</span>
-          </div>
-        ) : transactions.length === 0 ? (
-          <div className="detail-item">
-            <span>No transactions found</span>
-          </div>
-        ) : (
-          <>
-            <table className="transactions-table">
-              <thead>
-                <tr>
-                  <th>Txn Hash</th>
-                  <th>Block</th>
-                  <th>Age</th>
-                  <th>From</th>
-                  <th>To</th>
-                  <th>Value</th>
-                </tr>
-              </thead>
-              <tbody>
-                {transactions.map((tx) => (
-                  <tr key={tx.hash}>
-                    <td>
-                      <Link href={`/tx/${tx.hash}`}>
-                        {tx.hash.slice(0, 6)}...{tx.hash.slice(-4)}
-                      </Link>
-                    </td>
-                    <td>
-                      <Link href={`/block/${tx.blockNumber}`}>#{tx.blockNumber}</Link>
-                    </td>
-                    <td>{tx.timestamp ? timeAgo(tx.timestamp) : "N/A"}</td>
-                    <td>
-                      <Link href={`/address/${tx.from}`}>
-                        {tx.from.slice(0, 6)}...{tx.from.slice(-4)}
-                      </Link>
-                    </td>
-                    <td>
-                      {tx.to ? (
-                        <Link href={`/address/${tx.to}`}>
-                          {tx.to.slice(0, 6)}...{tx.to.slice(-4)}
-                        </Link>
-                      ) : (
-                        "Contract Creation"
-                      )}
-                    </td>
-                    <td>{tx.value} tUCC</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-
-            <div className="pagination">
-              <button onClick={handlePrevPage} disabled={page === 1}>
-                Previous
-              </button>
-              <span>Page {page} of {totalPages}</span>
-              <button onClick={handleNextPage} disabled={page >= totalPages}>
-                Next
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
