@@ -894,6 +894,249 @@ input {
   }
 }
 
+.tabs-container {
+  margin: 20px 0;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--gray-600);
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.tab {
+  background: none;
+  border: none;
+  padding: 12px 24px;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--gray-400);
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+}
+
+.tab.active {
+  color: var(--electric-blue);
+  border-bottom: 2px solid var(--electric-blue);
+}
+
+.tab-content {
+  padding: 20px 0;
+}
+
+.contract-code {
+  background: var(--dark-glass);
+  border-radius: 8px;
+  padding: 20px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 14px;
+  overflow-x: auto;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.read-contract,
+.write-contract {
+  padding: 20px;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.function-select,
+.function-param {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--gray-600);
+  background: var(--dark-glass);
+  color: white;
+  margin-bottom: 10px;
+}
+
+.param-input-group {
+  margin-bottom: 15px;
+}
+
+.param-label {
+  font-size: 14px;
+  color: var(--gray-300);
+  margin-bottom: 5px;
+  display: block;
+}
+
+.submit-button {
+  background: linear-gradient(
+    135deg,
+    var(--electric-blue),
+    var(--cyber-cyan)
+  );
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.submit-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+.submit-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.connect-button {
+  background: linear-gradient(
+    135deg,
+    var(--electric-blue),
+    var(--cyber-cyan)
+  );
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.connect-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+.wallet-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.connected {
+  color: var(--green-400);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.disconnected {
+  color: var(--red-400);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.result-section {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--light-glass);
+  border-radius: 8px;
+}
+
+.result-label {
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.result-value {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 14px;
+  color: var(--electric-blue);
+  word-break: break-all;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.result-value pre {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.function-info {
+  margin-top: 20px;
+  padding: 16px;
+  background: var(--dark-glass);
+  border-radius: 8px;
+  border-left: 4px solid var(--electric-blue);
+}
+
+.function-info h4 {
+  margin-top: 0;
+  color: var(--electric-blue);
+}
+
+.function-info p {
+  margin: 8px 0;
+  color: var(--gray-300);
+}
+
+.payable-warning {
+  color: var(--yellow-400);
+  font-weight: 500;
+}
+
+.verify-button {
+  display: inline-block;
+  background: linear-gradient(
+    135deg,
+    var(--electric-blue),
+    var(--cyber-cyan)
+  );
+  color: white;
+  padding: 8px 16px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.verify-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+}
+
+@media (max-width: 768px) {
+  .tabs {
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+
+  .tab {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .table-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .wallet-status {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
 /* .sidebar {
   position: fixed;
   left: 0;

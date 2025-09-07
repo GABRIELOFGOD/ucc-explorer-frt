@@ -30,6 +30,8 @@ import SearchInput from "../../components/search-input";
 // Web3 integration - you'll need to install ethers.js
 // npm install ethers
 import { ethers } from "ethers";
+import ReadContract from "../../components/read-contract";
+import WriteContract from "../../components/write-contract";
 
 export default function Address() {
   const router = useRouter();
@@ -43,18 +45,16 @@ export default function Address() {
   const [readFunctions, setReadFunctions] = useState([]);
   const [writeFunctions, setWriteFunctions] = useState([]);
   const [selectedReadFunction, setSelectedReadFunction] = useState(null);
-  const [selectedWriteFunction, setSelectedWriteFunction] = useState(null);
   const [readParams, setReadParams] = useState({});
   const [writeParams, setWriteParams] = useState({});
   const [readResult, setReadResult] = useState(null);
   const [readLoading, setReadLoading] = useState(false);
-  const [writeLoading, setWriteLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("transactions");
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
   const [contract, setContract] = useState(null);
-  const [walletConnected, setWalletConnected] = useState(false);
+  // const [walletConnected, setWalletConnected] = useState(false);
   const [supDec, setSupDec] = useState(null);
 
   const ERC20_ABI = [
@@ -99,7 +99,7 @@ export default function Address() {
           // Check if already connected
           const accounts = await web3Provider.listAccounts();
           if (accounts.length > 0) {
-            setWalletConnected(true);
+            // setWalletConnected(true);
             const signerInstance = await web3Provider.getSigner();
             setSigner(signerInstance);
           }
@@ -152,34 +152,6 @@ export default function Address() {
     }
   }, [contractABI, address, provider, signer]);
 
-  // Connect wallet function
-  const connectWallet = async () => {
-    if (typeof window !== "undefined" && window.ethereum) {
-      try {
-        await window.ethereum.request({ method: "eth_requestAccounts" });
-        
-        let web3Provider;
-        if (ethers.providers) {
-          // Ethers v5
-          web3Provider = new ethers.providers.Web3Provider(window.ethereum);
-        } else {
-          // Ethers v6
-          web3Provider = new ethers.BrowserProvider(window.ethereum);
-        }
-        
-        setProvider(web3Provider);
-        const signerInstance = await web3Provider.getSigner();
-        setSigner(signerInstance);
-        setWalletConnected(true);
-      } catch (error) {
-        console.error("Error connecting wallet:", error);
-        alert("Failed to connect wallet. Please try again.");
-      }
-    } else {
-      alert("Please install MetaMask or another Web3 wallet to interact with contracts.");
-    }
-  };
-
   useEffect(() => {
     if (id) {
       const fetchAddressInfo = async () => {
@@ -207,6 +179,7 @@ export default function Address() {
               // Fetch ABI if contract is verified
               if (contractResponse.data.contract.isVerified) {
                 const abiResponse = await getContractABI(id);
+                // console.log("ABI RESPONSE", abiResponse);
                 setContractABI(abiResponse.data);
 
                 // Separate read and write functions from ABI
@@ -227,7 +200,7 @@ export default function Address() {
                   setWriteFunctions(writeFns);
 
                   if (readFns.length > 0) setSelectedReadFunction(readFns[0]);
-                  if (writeFns.length > 0) setSelectedWriteFunction(writeFns[0]);
+                  // if (writeFns.length > 0) setSelectedWriteFunction(writeFns[0]);
                 }
               }
             } catch (error) {
@@ -259,7 +232,7 @@ export default function Address() {
   const handleWriteFunctionChange = (e) => {
     const funcName = e.target.value;
     const func = writeFunctions.find((f) => f.name === funcName);
-    setSelectedWriteFunction(func);
+    // setSelectedWriteFunction(func);
     setWriteParams({});
   };
 
@@ -367,79 +340,80 @@ export default function Address() {
     }
   };
 
-  const handleWriteFunctionCall = async () => {
-    if (!selectedWriteFunction || !contract || !walletConnected) {
-      if (!walletConnected) {
-        alert("Please connect your wallet first to write to the contract.");
-        return;
-      }
-      return;
-    }
+  // const handleWriteFunctionCall = async () => {
+  //   if (!selectedWriteFunction || !contract || !walletConnected) {
+  //     if (!walletConnected) {
+  //       alert("Please connect your wallet first to write to the contract.");
+  //       return;
+  //     }
+  //     return;
+  //   }
 
-    setWriteLoading(true);
+  //   setWriteLoading(true);
 
-    try {
-      // Prepare parameters
-      const params = [];
-      let payableValue = ethers.BigNumber.from(0);
+  //   try {
+  //     // Prepare parameters
+  //     const params = [];
+  //     let payableValue = ethers.BigNumber.from(0);
 
-      if (selectedWriteFunction.inputs && selectedWriteFunction.inputs.length > 0) {
-        for (const input of selectedWriteFunction.inputs) {
-          const paramValue = writeParams[input.name];
-          if (paramValue === undefined || paramValue === '') {
-            throw new Error(`Parameter ${input.name} is required`);
-          }
-          const parsedValue = parseParameterValue(paramValue, input.type);
-          params.push(parsedValue);
-        }
-      }
+  //     if (selectedWriteFunction.inputs && selectedWriteFunction.inputs.length > 0) {
+  //       for (const input of selectedWriteFunction.inputs) {
+  //         const paramValue = writeParams[input.name];
+  //         if (paramValue === undefined || paramValue === '') {
+  //           throw new Error(`Parameter ${input.name} is required`);
+  //         }
+  //         const parsedValue = parseParameterValue(paramValue, input.type);
+  //         params.push(parsedValue);
+  //       }
+  //     }
 
-      // Handle payable functions
-      const options = {};
-      if (selectedWriteFunction.stateMutability === 'payable') {
-        const ethValue = writeParams['_value'] || '0';
-        if (ethers.utils) {
-          // Ethers v5
-          options.value = ethers.utils.parseEther(ethValue);
-        } else {
-          // Ethers v6
-          options.value = ethers.parseEther(ethValue);
-        }
-      }
+  //     // Handle payable functions
+  //     const options = {};
+  //     if (selectedWriteFunction.stateMutability === 'payable') {
+  //       const ethValue = writeParams['_value'] || '0';
+  //       if (ethers.utils) {
+  //         // Ethers v5
+  //         options.value = ethers.utils.parseEther(ethValue);
+  //       } else {
+  //         // Ethers v6
+  //         options.value = ethers.parseEther(ethValue);
+  //       }
+  //     }
 
-      // Estimate gas
-      try {
-        const gasEstimate = await contract.estimateGas[selectedWriteFunction.name](...params, options);
-        if (ethers.BigNumber && ethers.BigNumber.isBigNumber(gasEstimate)) {
-          // Ethers v5
-          options.gasLimit = gasEstimate.mul(120).div(100);
-        } else {
-          // Ethers v6
-          options.gasLimit = (gasEstimate * BigInt(120)) / BigInt(100);
-        }
-      } catch (gasError) {
-        console.warn("Gas estimation failed, using default gas limit");
-        options.gasLimit = 300000; // Default gas limit
-      }
+  //     // Estimate gas
+  //     try {
+  //       const gasEstimate = await contract.estimateGas[selectedWriteFunction.name](...params, options);
+  //       if (ethers.BigNumber && ethers.BigNumber.isBigNumber(gasEstimate)) {
+  //         // Ethers v5
+  //         options.gasLimit = gasEstimate.mul(120).div(100);
+  //       } else {
+  //         // Ethers v6
+  //         options.gasLimit = (gasEstimate * BigInt(120)) / BigInt(100);
+  //       }
+  //     } catch (gasError) {
+  //       console.warn("Gas estimation failed, using default gas limit");
+  //       options.gasLimit = 300000; // Default gas limit
+  //     }
 
-      // Call the contract function
-      const tx = await contract[selectedWriteFunction.name](...params, options);
+  //     // Call the contract function
+  //     const tx = await contract[selectedWriteFunction.name](...params, options);
       
-      alert(`Transaction sent! Hash: ${tx.hash}`);
+  //     alert(`Transaction sent! Hash: ${tx.hash}`);
       
-      // Wait for transaction confirmation
-      const receipt = await tx.wait();
-      alert(`Transaction confirmed in block ${receipt.blockNumber}`);
+  //     // Wait for transaction confirmation
+  //     const receipt = await tx.wait();
+  //     alert(`Transaction confirmed in block ${receipt.blockNumber}`);
       
-    } catch (error) {
-      console.error("Error calling write function:", error);
-      alert(`Transaction failed: ${error.message}`);
-    } finally {
-      setWriteLoading(false);
-    }
-  };
+  //   } catch (error) {
+  //     console.error("Error calling write function:", error);
+  //     alert(`Transaction failed: ${error.message}`);
+  //   } finally {
+  //     setWriteLoading(false);
+  //   }
+  // };
 
   // Function signature generator for display
+  
   const getFunctionSignature = (func) => {
     const inputs = func.inputs || [];
     const inputTypes = inputs.map(input => input.type).join(', ');
@@ -837,183 +811,26 @@ export default function Address() {
             )}
 
             {activeTab === "read" && address?.isVerified && (
-              <div className="table-container">
-                <div className="table-header">
-                  <div className="table-title">Read Contract</div>
-                  <div className="wallet-status">
-                    {provider ? (
-                      <span className="connected">✓ Provider Connected</span>
-                    ) : (
-                      <span className="disconnected">✗ No Provider</span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="read-contract">
-                  <div className="form-group">
-                    <label htmlFor="readFunction">Select Function</label>
-                    <select
-                      id="readFunction"
-                      className="function-select"
-                      onChange={handleReadFunctionChange}
-                      value={selectedReadFunction?.name || ""}
-                    >
-                      <option value="">Select a function</option>
-                      {readFunctions.map((func, index) => (
-                        <option key={index} value={func.name}>
-                          {getFunctionSignature(func)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {selectedReadFunction &&
-                    selectedReadFunction.inputs &&
-                    selectedReadFunction.inputs.length > 0 && (
-                      <div className="form-group">
-                        <label>Parameters</label>
-                        {selectedReadFunction.inputs.map((input, index) => (
-                          <div key={index} className="param-input-group">
-                            <label className="param-label">
-                              {input.name} ({input.type})
-                            </label>
-                            <input
-                              type="text"
-                              placeholder={`Enter ${input.type} value`}
-                              className="function-param"
-                              value={readParams[input.name] || ""}
-                              onChange={(e) =>
-                                handleReadParamChange(input.name, e.target.value)
-                              }
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                  <button
-                    className="submit-button"
-                    onClick={handleReadFunctionCall}
-                    disabled={!selectedReadFunction || readLoading || !contract}
-                  >
-                    {readLoading ? "Querying..." : "Query"}
-                  </button>
-
-                  {readResult && (
-                    <div className="result-section">
-                      <div className="result-label">Result:</div>
-                      <div className="result-value">
-                        <pre>{readResult}</pre>
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedReadFunction && (
-                    <div className="function-info">
-                      <h4>Function Details:</h4>
-                      <p><strong>Name:</strong> {selectedReadFunction.name}</p>
-                      <p><strong>Type:</strong> {selectedReadFunction.stateMutability}</p>
-                      {selectedReadFunction.outputs && selectedReadFunction.outputs.length > 0 && (
-                        <p><strong>Returns:</strong> {selectedReadFunction.outputs.map(o => o.type).join(', ')}</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <ReadContract
+                provider={provider}
+                handleReadFunctionChange={handleReadFunctionChange}
+                selectedReadFunction={selectedReadFunction}
+                getFunctionSignature={getFunctionSignature}
+                handleReadParamChange={handleReadParamChange}
+                readFunctions={readFunctions}
+                readParams={readParams}
+                handleReadFunctionCall={handleReadFunctionCall}
+                contract={contract}
+                readLoading={readLoading}
+                readResult={readResult}
+              />
             )}
 
             {activeTab === "write" && address?.isVerified && (
-              <div className="table-container">
-                <div className="table-header">
-                  <div className="table-title">Write Contract</div>
-                  <div className="wallet-status">
-                    {walletConnected ? (
-                      <span className="connected">✓ Wallet Connected</span>
-                    ) : (
-                      <button className="connect-button" onClick={connectWallet}>
-                        Connect Wallet
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="write-contract">
-                  <div className="form-group">
-                    <label htmlFor="writeFunction">Select Function</label>
-                    <select
-                      id="writeFunction"
-                      className="function-select"
-                      onChange={handleWriteFunctionChange}
-                      value={selectedWriteFunction?.name || ""}
-                    >
-                      <option value="">Select a function</option>
-                      {writeFunctions.map((func, index) => (
-                        <option key={index} value={func.name}>
-                          {getFunctionSignature(func)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {selectedWriteFunction &&
-                    selectedWriteFunction.inputs &&
-                    selectedWriteFunction.inputs.length > 0 && (
-                      <div className="form-group">
-                        <label>Parameters</label>
-                        {selectedWriteFunction.inputs.map((input, index) => (
-                          <div key={index} className="param-input-group">
-                            <label className="param-label">
-                              {input.name} ({input.type})
-                            </label>
-                            <input
-                              type="text"
-                              placeholder={`Enter ${input.type} value`}
-                              className="function-param"
-                              value={writeParams[input.name] || ""}
-                              onChange={(e) =>
-                                handleWriteParamChange(input.name, e.target.value)
-                              }
-                            />
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                  {selectedWriteFunction?.stateMutability === 'payable' && (
-                    <div className="form-group">
-                      <label className="param-label">Value (ETH)</label>
-                      <input
-                        type="text"
-                        placeholder="Enter ETH amount to send"
-                        className="function-param"
-                        value={writeParams['_value'] || ""}
-                        onChange={(e) =>
-                          handleWriteParamChange('_value', e.target.value)
-                        }
-                      />
-                    </div>
-                  )}
-
-                  <button
-                    className="submit-button"
-                    onClick={handleWriteFunctionCall}
-                    disabled={!selectedWriteFunction || writeLoading || !walletConnected || !contract}
-                  >
-                    {writeLoading ? "Processing..." : "Write"}
-                  </button>
-
-                  {selectedWriteFunction && (
-                    <div className="function-info">
-                      <h4>Function Details:</h4>
-                      <p><strong>Name:</strong> {selectedWriteFunction.name}</p>
-                      <p><strong>Type:</strong> {selectedWriteFunction.stateMutability}</p>
-                      {selectedWriteFunction.stateMutability === 'payable' && (
-                        <p className="payable-warning">⚠️ This function can receive ETH</p>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </div>
+              <WriteContract
+                contractAddress={id}
+                abi={contractABI.abi}
+              />
             )}
 
             {activeTab === "token-transactions" && (
@@ -1234,7 +1051,7 @@ export default function Address() {
         </div>
       )}
 
-      <style jsx>{`
+      {/* <style jsx>{`
         .tabs-container {
           margin: 20px 0;
         }
@@ -1477,7 +1294,7 @@ export default function Address() {
             justify-content: flex-end;
           }
         }
-      `}</style>
+      `}</style> */}
     </div>
   );
 }
